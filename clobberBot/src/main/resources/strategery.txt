@@ -1,0 +1,29 @@
+stuf we should know
+1. what bullets can hit us
+	a. once a bullet has been shot, we only need to track it twice to determine its direction then we can determine whether it is dangerous or not
+	b. we'd need to break bullets down into categories (perhaps by usage of inheritance) for dangerous and not dangerous
+2. if we are near other bots (within three moves)
+3. what general area other bots are in for attacking/evasive purposes
+4. how other bots are moving (if they are moving)
+5. in which directions our enemies can shoot us i.e. our safe spots to close in on them
+
+evasive actions
+1. determine a danger zone (possibly within 3 moves away to move if a bullet can hit us within)
+2. not moving unless we are in danger (precedence over moving towards other bots if they arent moving)
+3. if we are in danger move in a sensical way to either avoid or get into a shooting position
+
+attacking actions
+1. prefer to move and avoid rather than shoot
+2. if we are not in danger and have a good lock on a bot, we can shoot
+
+movement
+1. i think we should move towards bots when there is a small enough number to try to kill them
+2. we should maybe notice if we are moving too often in the same place (like in an oscillation situation)
+
+different strategies depending on game type
+1. 1v1 
+2. free for all
+
+general strategy
+base on position away from enemies
+have different types of movement (closing in on enemy, close enough to attack, evasive)
