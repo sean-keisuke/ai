@@ -1,3 +1,4 @@
+import java.util.Stack;
 import source.Action;
 import source.EightPuzzleState;
 import source.SearchFrontierStack;
@@ -16,6 +17,7 @@ public class EightPuzzleDriver
     public boolean search (int depthLimit)
     {
 		initial.depth = 0;
+		initial.parent = null;
         store.add(initial);
         EightPuzzleState s;
 		
@@ -25,23 +27,22 @@ public class EightPuzzleDriver
 	
             if(s.isGoal())
             {
-                //System.out.println(s.traverseFullList()); Won't compile
+                s.traverseFullList(new Stack<String>()); 
                 return true;
             }
-			if (s.depth == depthLimit)
-			{
-				searchFail();
-				return false;
-			}
             if(s.canActOn())
             {
-                Action<EightPuzzleState>[] list = s.getAvailableActions();
-                for(Action<EightPuzzleState> a: list)
-                {
-					EightPuzzleState newState = a.updateState(s);
-					newState.setDepth(s.depth + 1);
-                    store.add(newState); 
-                }
+				if (s.depth < depthLimit)
+				{
+					Action<EightPuzzleState>[] list = s.getAvailableActions();
+					for(Action<EightPuzzleState> a: list)
+					{
+						EightPuzzleState newState = a.updateState(s);
+						newState.setDepth(s.depth + 1);
+						newState.setParent(s);
+						store.add(newState); 
+					}
+				}
             }
         }
 		searchFail();
@@ -55,7 +56,7 @@ public class EightPuzzleDriver
 	
 	public static void main(String[] args)
 	{
-		EightPuzzleDriver driver = new EightPuzzleDriver(new EightPuzzleState("12345 786"));
+		EightPuzzleDriver driver = new EightPuzzleDriver(new EightPuzzleState(" 23146758"));
 		for (int i = 0; i < Integer.MAX_VALUE; i++)
 		{
 			if (driver.search(i))
