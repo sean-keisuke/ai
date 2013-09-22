@@ -1,7 +1,5 @@
 package source;
 
-import java.util.Stack;
-
 public class EightPuzzleState implements State
 {
     public String board;
@@ -46,15 +44,15 @@ public class EightPuzzleState implements State
         return true;
     }
 	
-	public void traverseFullList(Stack<String> sequence)
+	@Override
+	public String traverseFullList(String sequence)
 	{
-		if (this.parent == null || this == null)
+		if (this.parent == null)
 		{
-			System.out.println(sequence);
-			return;
+			return sequence = this.toString() + "\n" + sequence;
 		}
-		sequence.push(this.toString() + "\n");
-		this.parent.traverseFullList(sequence);
+		sequence = this.toString() + "\n" + sequence;
+		return this.parent.traverseFullList(sequence);
 	}
 
 	public void setParent(EightPuzzleState parent)
@@ -72,9 +70,30 @@ public class EightPuzzleState implements State
 		this.depth = depth;
 	}
 	
+	@Override
 	public String toString()
 	{
-		return "<Depth:" + depth + "> " + board;
+		return "<Depth:" + depth + ">\n" +
+				board.charAt(0) + " " + board.charAt(1) + " " + board.charAt(2) + "\n" +
+				board.charAt(3) + " " + board.charAt(4) + " " + board.charAt(5) + "\n" +
+				board.charAt(6) + " " + board.charAt(7) + " " + board.charAt(8) + "\n";
+	}
+
+	@Override
+	public int hashCode()
+	{
+		return board.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (obj instanceof EightPuzzleState)
+		{
+			EightPuzzleState that = (EightPuzzleState)obj;
+			return this.board.equals(that.board);
+		}
+		return false;
 	}
 }
 

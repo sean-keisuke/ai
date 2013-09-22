@@ -1,4 +1,4 @@
-import java.util.Stack;
+import java.util.regex.Pattern;
 import source.Action;
 import source.EightPuzzleState;
 import source.SearchFrontierStack;
@@ -7,6 +7,7 @@ public class EightPuzzleDriver
 {
 	EightPuzzleState initial;
 	SearchFrontierStack store;
+	static int numExpanded = 0;
 	
 	public EightPuzzleDriver(EightPuzzleState initial)
 	{
@@ -20,15 +21,16 @@ public class EightPuzzleDriver
 		initial.parent = null;
         store.add(initial);
         EightPuzzleState s;
-		
+				
         while(!store.isEmpty())
         {
-            s = store.next(); 
-	
+			s = store.next(); 
+			++numExpanded;
+			if(numExpanded%500==0) System.out.print("\rNumExpanded = " + numExpanded);
             if(s.isGoal())
             {
-                s.traverseFullList(new Stack<String>()); 
-                return true;
+                System.out.println("\n" + s.traverseFullList(""));
+				return true;
             }
             if(s.canActOn())
             {
@@ -45,26 +47,26 @@ public class EightPuzzleDriver
 				}
             }
         }
-		searchFail();
+		store.clear();
 		return false;
     }
 	
-	public void searchFail()
-	{
-		store.clear();
-	}
-	
 	public static void main(String[] args)
 	{
-		EightPuzzleDriver driver = new EightPuzzleDriver(new EightPuzzleState(" 23146758"));
+		Pattern pattern = Pattern.compile("[ 1-8]{9}");
+		String puzzle = args[0];
+		if (puzzle.length() != 9 || !pattern.matcher(puzzle).matches())
+		{
+			throw new NullPointerException("The puzzle you provided was not valid");
+		}
+		EightPuzzleDriver driver = new EightPuzzleDriver(new EightPuzzleState(puzzle));
 		for (int i = 0; i < Integer.MAX_VALUE; i++)
 		{
 			if (driver.search(i))
 			{
-				System.out.println("Win");
+				System.out.println("Nodes expanded: " + numExpanded);
 				System.exit(0);
 			}
 		}
-		
 	}
 }

@@ -6,7 +6,7 @@ public interface State
     public Action[] getAvailableActions();
     public boolean isGoal();
     public boolean canActOn();
-//	public String traverseFullList();
+	public String traverseFullList(String sequence);
 }
 
 
