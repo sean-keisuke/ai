@@ -1,0 +1,11 @@
+$java RandomEight 10 => "1234 8765"
+depth found = 6
+nodes expanded = 170
+
+$java RandomEight 20 => "5827 3146"
+depth found = 18
+nodes expanded = 17035
+
+$java RandomEight 30 => "2831 6457" 
+depth found = 12
+nodes expanded = 2788
