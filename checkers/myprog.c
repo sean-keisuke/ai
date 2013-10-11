@@ -11,6 +11,7 @@
 #define CLK_TCK CLOCKS_PER_SEC
 #endif
 
+int maxInt = 2147483647;
 float SecPerMove;
 char board[8][8];
 char bestmove[12];
@@ -278,6 +279,21 @@ void FindBestMove(int player)
     // For now, until you write your search routine, we will just set the best move
     // to be a random (legal) one, so that it plays a legal game of checkers.
     // You *will* want to replace this with a more intelligent move seleciton
+    int x;
+    for (x = 0; x < state.numLegalMoves; x++)
+    {
+        double rval;
+        char nextBoard[8][8];
+        memcpy(nextBoard, state.board, 64*sizeof(char));
+        PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
+        rval = minVal(nextBoard, -maxInt, maxInt, MaxDepth);
+
+        if (currBestVal < rval)
+        {
+            currBestVal=rval;
+            currBestMove=x;
+        }
+    }
     i = rand()%state.numLegalMoves;
     memcpy(bestmove,state.movelist[i],MoveLength(state.movelist[i]));
 }
