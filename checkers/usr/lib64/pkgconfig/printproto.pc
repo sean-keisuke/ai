@@ -1,0 +1,10 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib64
+includedir=/usr/include
+ 
+Name: PrintProto
+Description: Print extension headers
+Version: 1.0.0
+Requires: xau
+Cflags: -I${includedir}
