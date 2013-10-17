@@ -10,15 +10,15 @@ LDFLAGS         := -lX11 -lXm -lXaw -lXmu -lXt -lICE -lSM -pthread -L/home/reube
 #CFLAGS          += -DGRAPHICS
 
 #Uncomment this next line if you'd like to debug against yourself
-#CFLAGS 		+= -DDEBUG
+CFLAGS 		+= -DDEBUG
 
-all: checkers computer
+all: checkers computer makeboard
 checkers: graphics.o checkers.o
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 computer: myprog.o
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ $^ ${LDFLAGS}
-
-
+makeboard: makeboard.o
+	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 .PHONY: clean
 clean:
 	@-rm checkers computer *.o

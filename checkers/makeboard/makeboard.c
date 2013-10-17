@@ -54,9 +54,13 @@ void Usage(char *str)
    exit(0);
 }
 
-void PrintBoard()
+#define MyEmpty 0x00
+#define MyPiece 0x20
+#define MyKing 0x60
+#define MyRed 0x00
+#define MyWhite 0x80
+void SquaresToCharBoard(char board[8][8])
 {
-    int board[8][8];
     int x,y;
 
     for(y=0; y<8; y++)
@@ -67,16 +71,45 @@ void PrintBoard()
                if(square[y][x].state) {
                    if(square[y][x].col) 
                    {
-                      if(square[y][x].state == King) board[y][x] = 'W';
-                      else board[y][x] = 'w';
+                      if(square[y][x].state == King) board[y][x] = MyWhite | MyPiece | MyKing;
+                      else board[y][x] = MyWhite | MyPiece;
                    }
                    else
                    {
-                      if(square[y][x].state == King) board[y][x] = 'R';
-                      else board[y][x] = 'r';
+                      if(square[y][x].state == King) board[y][x] = MyRed | MyPiece | MyKing;
+                      else board[y][x] = MyRed | MyPiece;
+                   }
+               } else board[y][x] = MyEmpty;
+           } else board[y][x] = MyEmpty;
+       }
+    }
+}
+
+
+void PrintBoard()
+{
+    int board[8][8];
+    int x,y;
+    char ch = 127;
+
+    for(y=0; y<8; y++)
+    {
+       for(x=0; x<8; x++)
+       {
+           if(x%2 != y%2) {
+               if(square[y][x].state) {
+                   if(square[y][x].col) 
+                   {
+                      if(square[y][x].state == King) board[y][x] = 'B';
+                      else board[y][x] = 'b';
+                   }
+                   else
+                   {
+                      if(square[y][x].state == King) board[y][x] = 'A';
+                      else board[y][x] = 'a';
                    }
                } else board[y][x] = ' ';
-           } else board[y][x] = ' ';
+           } else board[y][x] = ch;
            printf("%c",board[y][x]);
        }
        printf("\n");
@@ -341,6 +374,25 @@ void MoveToText(int move[12], char *mtext)
     mtext[strlen(mtext)] = '\0';
 }
 
+
+void DontPerformMove(int move[12], int mlen)
+{
+    int x,y;
+
+    NumberToXY(move[0],&x,&y);
+    //NumberToXY(move[mlen-1],&x1,&y1);
+    //square[y1][x1].state = square[y][x].state;
+    if(square[y][x].state != King)
+    {
+        square[y][x].state = King;
+    }
+    else
+    {
+        square[y][x].state = Empty;
+    }
+    UpdateBoard();
+}
+
 /* Performs a move on the board, updating the state of the board */
 void PerformMove(int move[12], int mlen)
 {
@@ -418,7 +470,7 @@ void SquareChosen(struct Square *sq)
 
     if(playing && player[turn] == HUMAN) {
         if(hlen == 0) {    /* This is the first square chosen */
-            if(sq->state && sq->col == turn) {
+            if(TRUE || (sq->state && sq->col == turn)) {
                 hmove[hlen] = sq->val;
                 hlen++;
                 sq->hilite = turn;
@@ -431,7 +483,8 @@ void SquareChosen(struct Square *sq)
                 /* is illegal, partially complete, or a completed legal move */
                 hmove[hlen] = sq->val;
                 hlen++;
-                result = CheckHumanMove();
+                //result = CheckHumanMove();
+                result = FULL; // @@@ kludge to accept any human move
                 if(result == ILLEGAL) {
                     hlen = 0;
                     UnHighlightAll();
@@ -447,6 +500,7 @@ void SquareChosen(struct Square *sq)
                 }    
             } 
             else {
+                DontPerformMove(hmove, hlen);
                 hlen = 0;
                 UnHighlightAll();
                 memset(hmove,0,12*sizeof(int));
@@ -477,10 +531,20 @@ exit(0);
 #endif
 }
 
+void SaveBoard(void)
+{
+    FILE *fptr;
+    char board[8][8];
+    SquaresToCharBoard(board);
+    fptr = fopen("board.bin","wb");
+    fwrite(board,sizeof(char),8*8,fptr);
+    fclose(fptr);
+}
+
 /* Called when the 'New Game' menu item is selected */
 void NewGame(void)
 {
-    char secPerMove[16],maxDepth[16], useless2[16], useless[16];
+    char arg1[16],arg2[16], arg01[16], arg02[16];
     int i;
 #ifdef GRAPHICS
     if(!NewDialog(player1,player2,&SecPerMove)) return;
@@ -492,27 +556,27 @@ void NewGame(void)
 #endif
 
 
-    useless2[0]=0;
-    useless[0]=0;
+    arg01[0]=0;
+    arg02[0]=0;
     player1Java=0;
     player2Java=0;
     if(!strncmp(player1,"java",4)) 
     {
         player1Java=1;
         fprintf(stderr,"Player1 is java player\n");
-        strcpy(useless2,&(player1[5]));
+        strcpy(arg01,&(player1[5]));
         player1[4]=0;
         strcpy(player1,"/usr/bin/java");
-        fprintf(stderr,"%s %s\n", player1, useless2);
+        fprintf(stderr,"%s %s\n", player1, arg01);
     }
     if(!strncmp(player2,"java",4)) 
     {
         player2Java=1;
         fprintf(stderr,"Player2 is java player\n");
-        strcpy(useless,&(player2[5]));
+        strcpy(arg02,&(player2[5]));
         //player2[4]=0;
         strcpy(player2,"/usr/bin/java");
-        fprintf(stderr,"%s %s\n", player2, useless);
+        fprintf(stderr,"%s %s\n", player2, arg02);
     }
 
     /* If 'New Game' is chosen while a game is in progress, stop the game */
@@ -548,14 +612,14 @@ void NewGame(void)
             dup2(from_proc[1], STDOUT_FILENO);
             close(from_proc[1]);
 
-            sprintf(secPerMove,"%.2f",SecPerMove);
+            sprintf(arg1,"%.2f",SecPerMove);
             if(MaxDepth >= 0)
             {
-               sprintf(maxDepth,"%d", MaxDepth);
+               sprintf(arg2,"%d", MaxDepth);
                if((i==0 && player1Java ) || (i==1 && player2Java))
-                   temp = execl(i?player2:player1,i?player2:player1, i?useless:useless2,secPerMove,maxDepth, NULL);
+                   temp = execl(i?player2:player1,i?player2:player1, i?arg02:arg01,arg1,arg2, NULL);
                else
-                   temp = execl(i?player2:player1,i?player2:player1, secPerMove,maxDepth,(char *)0);
+                   temp = execl(i?player2:player1,i?player2:player1, arg1,arg2,(char *)0);
                if(temp)
                {
                    fprintf(stderr, "exec for %s failed\n",i?player2:player1);
@@ -565,9 +629,9 @@ void NewGame(void)
             else
             {
                if((i==0 && player1Java ) || (i==1 && player2Java))
-                   temp = execl(i?player2:player1,i?player2:player1, i?useless:useless2,secPerMove, NULL);
+                   temp = execl(i?player2:player1,i?player2:player1, i?arg02:arg01,arg1, NULL);
                else 
-                   temp = execl(i?player2:player1,i?player2:player1, secPerMove,(char *)0);
+                   temp = execl(i?player2:player1,i?player2:player1, arg1,(char *)0);
                if(temp)
                {
                    fprintf(stderr, "exec for %s failed\n",i?player2:player1);
@@ -638,7 +702,7 @@ int main(int argc, char *argv[])
      int x,y;
      /* I'll wait a bit to make sure both oponents are ready to go */
      printf("waiting\n");
-     usleep(50000);
+     sleep(1);
      for(x=0;x<1000;x++)
      for(y=0;y<10000;y++);
       }
@@ -646,14 +710,14 @@ int main(int argc, char *argv[])
     ResetBoard();
     for(;;) {
         pthread_t thread;
-        int rc, dummy;
+        int dummy;
         HandleEvents();
         if(playing) {
             sprintf(str,"Waiting for player %d",turn+1);
             Message(str);
             HumanMoved = done = 0;
             //start = times(&bff);
-            rc = pthread_create(&thread, NULL, timer, (void*)&done);
+            pthread_create(&thread, NULL, timer, (void*)&done);
             pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &dummy);
             do {
                 HandleEvents();
@@ -712,7 +776,7 @@ int main(int argc, char *argv[])
                     StopGame();
                 }
                 else {
-                    if(!IsLegal(move,mlen)) { /* Illegal move check 2 */
+                    if(FALSE && !IsLegal(move,mlen)) { /* Illegal move check 2 */
                        /*char temp[1000];
                        char *ptr1, *ptr2;
                        ptr1=text;

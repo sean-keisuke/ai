@@ -107,6 +107,6 @@ int TextToMove(char *mtext, char move[12]);
 void MoveToText(char move[12], char *mtext);
 void PerformMove(char board[8][8], char move[12], int mlen);
 int evalBoard(struct State * state);
-int positionFunction(int x, int y, int isKing);
-
+int positionFunction(int x, int y, int isKing, int player);
+int canBeJumped(int x, int y, int player);
 #endif

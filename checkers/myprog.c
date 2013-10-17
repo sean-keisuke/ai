@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
     SecPerMove = (float) atof(argv[1]); /* Time allotted for each move */
     MaxDepth = (argc == 4) ? atoi(argv[3]) : -1;
 
-    fprintf(stderr, "%s SecPerMove == %lg\n", argv[0], SecPerMove);
+    //fprintf(stderr, "%s SecPerMove == %lg\n", argv[0], SecPerMove);
 
     /* Determine if I am player 1 (red) or player 2 (white) */
 #ifdef DEBUG
@@ -381,12 +381,12 @@ int main(int argc, char *argv[])
 #endif
     if(!strncmp(buf,"Player1", strlen("Player1")))
     {
-        fprintf(stderr, "I'm Player 1\n");
+        //fprintf(stderr, "I'm Player 1\n");
         player1 = 1;
     }
     else
     {
-        fprintf(stderr, "I'm Player 2\n");
+        //fprintf(stderr, "I'm Player 2\n");
         player1 = 0;
     }
     if(player1) me = 1; else me = 2;
@@ -454,9 +454,9 @@ void FindBestMove(int player) {
 	/* Find the legal moves for the current state */
 	FindLegalMoves(&state);
 
-	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = evalBoard(state.movelist[currBestMove]);
+	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
 	for (x = 0; x < state.numLegalMoves; x++) {
-		int rval;
+		int rval = 0;
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
@@ -484,8 +484,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	for (x = 0; x < state.numLegalMoves; x++) {
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x],
-				MoveLength(state.movelist[x]));
+		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
 		beta = MIN(beta, MaxVal(nextBoard, alpha, beta, depth));
 
 		if (beta <= alpha)
@@ -508,8 +507,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	for (x = 0; x < state.numLegalMoves; x++) {
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x],
-				MoveLength(state.movelist[x]));
+		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
 		alpha = MAX(alpha, MinVal(nextBoard, alpha, beta, depth));
 
 		if (alpha >= beta)
@@ -522,6 +520,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  * The thought process behind this heuristic:
  * 1. Pawns that are closer to becoming kings are more valuable
  * 2. Controlling the middle is of more importance
+ * 3. Typically, I don't want to move directly into a position to be jumped
  */
 int evalBoard(struct State * state) {
 	int row, column, p1Score = 0, p2Score = 0;
@@ -538,7 +537,7 @@ int evalBoard(struct State * state) {
 					{
 						p1Score += 5;
 					}
-					p1Score += positionFunction(row, column, king(board[row][column]));
+					p1Score += positionFunction(row, column, king(board[row][column]), state->player);
 				}
 				else
 				{
@@ -550,7 +549,7 @@ int evalBoard(struct State * state) {
 					{
 						p2Score += 5;
 					}
-					p2Score += positionFunction(row, column, king(board[row][column]));
+					p2Score += positionFunction(row, column, king(board[row][column]), state->player);
 				}
 			}
 		}
@@ -558,18 +557,43 @@ int evalBoard(struct State * state) {
 	return state->player == 1 ? difference : -1*difference;
 }
 
-int positionFunction(int row, int column, int isKing)
+int positionFunction(int row, int column, int isKing, int player)
 {
 	int positionValue = 0;
+	positionValue += canBeJumped(row, column, player) ? isKing ? -15 : -5 : 0 ;
 	if (isKing)
 	{
-
+		//not in the back rows and not on the sides, being more useful in the middle
+		if ((row != 0 && row != 7) && (column != 0 && column != 7))
+		{
+			positionValue += 5;
+		}
 	}
 	else
 	{
+		//is this pawn advancing?
 		positionValue += row;
 	}
 	return positionValue;
+}
+
+/* Initially I am only checking if I can be jumped by pawns
+ * note: we are only ever in this method if we are a valid piece*/
+int canBeJumped(int row, int column, int player)
+{
+	//player 1 is red, player 2 is white, bottom of board is white
+	//check two squares in front of me that a piece could be in (or behind me depending on which way I am advancing)
+	int myColor = color(board[row][column]);
+	int rowInFront = row + myColor == 1 ? 1 : -1 ;
+	int firstColToCheck = column + 1;
+	int secondColToCheck = column - 1;
+
+	//if there are enemy pieces there I can be jumped, that's bad mmmkay
+	if (color(board[rowInFront][firstColToCheck]) != myColor || color(board[rowInFront][secondColToCheck]) != myColor)
+	{
+		return 1;
+	}
+	return 0;
 }
 
 
