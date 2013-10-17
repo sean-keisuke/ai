@@ -7,7 +7,10 @@ CPPFLAGS        := -I./
 LDFLAGS         := -lX11 -lXm -lXaw -lXmu -lXt -lICE -lSM -pthread -L/home/reuben/dev/ai/checkersTest/usr/
 
 # Uncomment this next line if you'd like to compile the graphical version of the checkers server.
-CFLAGS          += -DGRAPHICS
+#CFLAGS          += -DGRAPHICS
+
+#Uncomment this next line if you'd like to debug against yourself
+#CFLAGS 		+= -DDEBUG
 
 all: checkers computer
 checkers: graphics.o checkers.o

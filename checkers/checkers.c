@@ -481,7 +481,7 @@ exit(0);
 /* Called when the 'New Game' menu item is selected */
 void NewGame(void)
 {
-    char arg1[16],arg2[16], arg01[16], arg02[16];
+    char secPerMove[16],maxDepth[16], useless2[16], useless[16];
     int i;
 #ifdef GRAPHICS
     if(!NewDialog(player1,player2,&SecPerMove)) return;
@@ -493,27 +493,27 @@ void NewGame(void)
 #endif
 
 
-    arg01[0]=0;
-    arg02[0]=0;
+    useless2[0]=0;
+    useless[0]=0;
     player1Java=0;
     player2Java=0;
     if(!strncmp(player1,"java",4)) 
     {
         player1Java=1;
         fprintf(stderr,"Player1 is java player\n");
-        strcpy(arg01,&(player1[5]));
+        strcpy(useless2,&(player1[5]));
         player1[4]=0;
         strcpy(player1,"/usr/bin/java");
-        fprintf(stderr,"%s %s\n", player1, arg01);
+        fprintf(stderr,"%s %s\n", player1, useless2);
     }
     if(!strncmp(player2,"java",4)) 
     {
         player2Java=1;
         fprintf(stderr,"Player2 is java player\n");
-        strcpy(arg02,&(player2[5]));
+        strcpy(useless,&(player2[5]));
         //player2[4]=0;
         strcpy(player2,"/usr/bin/java");
-        fprintf(stderr,"%s %s\n", player2, arg02);
+        fprintf(stderr,"%s %s\n", player2, useless);
     }
 
     /* If 'New Game' is chosen while a game is in progress, stop the game */
@@ -549,14 +549,14 @@ void NewGame(void)
             dup2(from_proc[1], STDOUT_FILENO);
             close(from_proc[1]);
 
-            sprintf(arg1,"%.2f",SecPerMove);
+            sprintf(secPerMove,"%.2f",SecPerMove);
             if(MaxDepth >= 0)
             {
-               sprintf(arg2,"%d", MaxDepth);
+               sprintf(maxDepth,"%d", MaxDepth);
                if((i==0 && player1Java ) || (i==1 && player2Java))
-                   temp = execl(i?player2:player1,i?player2:player1, i?arg02:arg01,arg1,arg2, NULL);
+                   temp = execl(i?player2:player1,i?player2:player1, i?useless:useless2,secPerMove,maxDepth, NULL);
                else
-                   temp = execl(i?player2:player1,i?player2:player1, arg1,arg2,(char *)0);
+                   temp = execl(i?player2:player1,i?player2:player1, secPerMove,maxDepth,(char *)0);
                if(temp)
                {
                    fprintf(stderr, "exec for %s failed\n",i?player2:player1);
@@ -566,9 +566,9 @@ void NewGame(void)
             else
             {
                if((i==0 && player1Java ) || (i==1 && player2Java))
-                   temp = execl(i?player2:player1,i?player2:player1, i?arg02:arg01,arg1, NULL);
+                   temp = execl(i?player2:player1,i?player2:player1, i?useless:useless2,secPerMove, NULL);
                else 
-                   temp = execl(i?player2:player1,i?player2:player1, arg1,(char *)0);
+                   temp = execl(i?player2:player1,i?player2:player1, secPerMove,(char *)0);
                if(temp)
                {
                    fprintf(stderr, "exec for %s failed\n",i?player2:player1);

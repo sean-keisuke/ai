@@ -6,7 +6,7 @@
 #include <sys/times.h>
 #include <time.h>
 #include "myprog.h"
-
+ 
 #ifndef CLK_TCK
 #define CLK_TCK CLOCKS_PER_SEC
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -45,7 +45,7 @@ void PrintTime(void)
 }
 
 /* Determine if I'm low on time */
-int LowOnTime(void)
+int LowOnTime(void) 
 {
     clock_t current;
     float total;
@@ -59,7 +59,7 @@ int LowOnTime(void)
 void CopyState(char *dest, char src)
 {
     char state;
-
+    
     *dest &= Clear;
     state = src & 0xE0;
     *dest |= state;
@@ -69,7 +69,7 @@ void CopyState(char *dest, char src)
 void ResetBoard(void)
 {
         int x,y;
-        char pos;
+    char pos;
 
         pos = 0;
         for(y=0; y<8; y++)
@@ -78,7 +78,7 @@ void ResetBoard(void)
                 if(x%2 != y%2) {
                         board[y][x] = pos;
                         if(y<3 || y>4) board[y][x] |= Piece; else board[y][x] |= Empty;
-                        if(y<3) board[y][x] |= Red;
+                        if(y<3) board[y][x] |= Red; 
                         if(y>4) board[y][x] |= White;
                         pos++;
                 } else board[y][x] = 0;
@@ -96,7 +96,7 @@ void AddMove(char move[12])
 }
 
 /* Finds legal non-jump moves for the King at position x,y */
-void FindKingMoves(char board[8][8], int x, int y)
+void FindKingMoves(char board[8][8], int x, int y) 
 {
     int i,j,x1,y1;
     char move[12];
@@ -109,17 +109,17 @@ void FindKingMoves(char board[8][8], int x, int y)
     {
         y1 = y+j; x1 = x+i;
         /* Make sure we're not off the edge of the board */
-        if(y1<0 || y1>7 || x1<0 || x1>7) continue;
+        if(y1<0 || y1>7 || x1<0 || x1>7) continue; 
         if(empty(board[y1][x1])) {  /* The square is empty, so we can move there */
             move[0] = number(board[y][x])+1;
-            move[1] = number(board[y1][x1])+1;
+            move[1] = number(board[y1][x1])+1;    
             AddMove(move);
         }
     }
 }
 
 /* Finds legal non-jump moves for the Piece at position x,y */
-void FindMoves(int player, char board[8][8], int x, int y)
+void FindMoves(int player, char board[8][8], int x, int y) 
 {
     int i,j,x1,y1;
     char move[12];
@@ -132,10 +132,10 @@ void FindMoves(int player, char board[8][8], int x, int y)
     {
         y1 = y+j; x1 = x+i;
         /* Make sure we're not off the edge of the board */
-        if(y1<0 || y1>7 || x1<0 || x1>7) continue;
+        if(y1<0 || y1>7 || x1<0 || x1>7) continue; 
         if(empty(board[y1][x1])) {  /* The square is empty, so we can move there */
             move[0] = number(board[y][x])+1;
-            move[1] = number(board[y1][x1])+1;
+            move[1] = number(board[y1][x1])+1;    
             AddMove(move);
         }
     }
@@ -145,13 +145,13 @@ void FindMoves(int player, char board[8][8], int x, int y)
 void AddJump(char move[12])
 {
     int i;
-
+    
     for(i=0; i<12; i++) jumplist[jumpptr][i] = move[i];
     jumpptr++;
 }
 
 /* Finds legal jump sequences for the King at position x,y */
-int FindKingJump(int player, char board[8][8], char move[12], int len, int x, int y)
+int FindKingJump(int player, char board[8][8], char move[12], int len, int x, int y) 
 {
     int i,j,x1,y1,x2,y2,FoundJump = 0;
     char one,two,mymove[12],myboard[8][8];
@@ -165,7 +165,7 @@ int FindKingJump(int player, char board[8][8], char move[12], int len, int x, in
         y1 = y+j; x1 = x+i;
         y2 = y+2*j; x2 = x+2*i;
         /* Make sure we're not off the edge of the board */
-        if(y2<0 || y2>7 || x2<0 || x2>7) continue;
+        if(y2<0 || y2>7 || x2<0 || x2>7) continue; 
         one = board[y1][x1];
         two = board[y2][x2];
         /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
@@ -186,7 +186,7 @@ int FindKingJump(int player, char board[8][8], char move[12], int len, int x, in
 }
 
 /* Finds legal jump sequences for the Piece at position x,y */
-int FindJump(int player, char board[8][8], char move[12], int len, int x, int y)
+int FindJump(int player, char board[8][8], char move[12], int len, int x, int y) 
 {
     int i,j,x1,y1,x2,y2,FoundJump = 0;
     char one,two,mymove[12],myboard[8][8];
@@ -194,13 +194,13 @@ int FindJump(int player, char board[8][8], char move[12], int len, int x, int y)
     memcpy(mymove,move,12*sizeof(char));
 
     /* Check the two adjacent squares in the forward direction */
-    j = player == 1 ? 1 : -1;
+    if(player == 1) j = 1; else j = -1;
     for(i=-1; i<2; i+=2)
     {
         y1 = y+j; x1 = x+i;
         y2 = y+2*j; x2 = x+2*i;
         /* Make sure we're not off the edge of the board */
-        if(y2<0 || y2>7 || x2<0 || x2>7) continue;
+        if(y2<0 || y2>7 || x2<0 || x2>7) continue; 
         one = board[y1][x1];
         two = board[y2][x2];
         /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
@@ -239,23 +239,23 @@ int FindLegalMoves(struct State *state)
                 move[0] = number(board[y][x])+1;
                 FindKingJump(state->player,board,move,1,x,y);
                 if(!jumpptr) FindKingMoves(board,x,y);
-            }
+            } 
             else if(piece(board[y][x])) { /* Piece */
                 move[0] = number(board[y][x])+1;
                 FindJump(state->player,board,move,1,x,y);
-                if(!jumpptr) FindMoves(state->player,board,x,y);
+                if(!jumpptr) FindMoves(state->player,board,x,y);    
             }
-        }
+        }    
     }
     if(jumpptr) {
-        for(x=0; x<jumpptr; x++)
-        for(y=0; y<12; y++)
+        for(x=0; x<jumpptr; x++) 
+        for(y=0; y<12; y++) 
         state->movelist[x][y] = jumplist[x][y];
         state->numLegalMoves = jumpptr;
-    }
+    } 
     else {
-        for(x=0; x<numLegalMoves; x++)
-        for(y=0; y<12; y++)
+        for(x=0; x<numLegalMoves; x++) 
+        for(y=0; y<12; y++) 
         state->movelist[x][y] = movelist[x][y];
         state->numLegalMoves = numLegalMoves;
     }
@@ -279,7 +279,7 @@ void NumberToXY(char num, int *x, int *y)
             }
         }
     }
-    *x = 0;
+    *x = 0; 
     *y = 0;
 }
 
@@ -291,7 +291,7 @@ int MoveLength(char move[12])
     i = 0;
     while(i<12 && move[i]) i++;
     return i;
-}
+}    
 
 /* Converts the text version of a move to its integer array version */
 int TextToMove(char *mtext, char move[12])
@@ -333,28 +333,26 @@ void MoveToText(char move[12], char *mtext)
 /* Performs a move on the board, updating the state of the board */
 void PerformMove(char board[8][8], char move[12], int mlen)
 {
-    int i,j,srcSquareX,srcSquareY,destSquareX,destSquareY,otherDestSquareX,otherDestSquareY, homeRow=0, otherHomeRow=7;
+    int i,j,x,y,x1,y1,x2,y2;
 
-    NumberToXY(move[0],&srcSquareX,&srcSquareY);
-    NumberToXY(move[mlen-1],&destSquareX,&destSquareY);
-    CopyState(&board[destSquareY][destSquareX],board[srcSquareY][srcSquareX]);
-    if(destSquareY == homeRow || destSquareY == otherHomeRow) board[destSquareY][destSquareX] |= King;
-    board[srcSquareY][srcSquareX] &= Clear;
-    NumberToXY(move[1],&otherDestSquareX,&otherDestSquareY);
-
-    //if this move is a jump
-    if(abs(otherDestSquareX-srcSquareX) == 2) {
+    NumberToXY(move[0],&x,&y);
+    NumberToXY(move[mlen-1],&x1,&y1);
+    CopyState(&board[y1][x1],board[y][x]);
+    if(y1 == 0 || y1 == 7) board[y1][x1] |= King;
+    board[y][x] &= Clear;
+    NumberToXY(move[1],&x2,&y2);
+    if(abs(x2-x) == 2) {
         for(i=0,j=1; j<mlen; i++,j++) {
             if(move[i] > move[j]) {
-                destSquareY = -1;
-                if((move[i]-move[j]) == 9) destSquareX = -1; else destSquareX = 1;
+                y1 = -1; 
+                if((move[i]-move[j]) == 9) x1 = -1; else x1 = 1;
             }
             else {
-                destSquareY = 1;
-                if((move[j]-move[i]) == 7) destSquareX = -1; else destSquareX = 1;
+                y1 = 1;
+                if((move[j]-move[i]) == 7) x1 = -1; else x1 = 1;
             }
-            NumberToXY(move[i],&srcSquareX,&srcSquareY);
-            board[srcSquareY+destSquareY][srcSquareX+destSquareX] &= Clear;
+            NumberToXY(move[i],&x,&y);
+            board[y+y1][x+x1] &= Clear;
         }
     }
 }
@@ -362,36 +360,31 @@ void PerformMove(char board[8][8], char move[12], int mlen)
 int main(int argc, char *argv[])
 {
     char buf[1028],move[12];
-    int mlen,player1;
-#ifndef DEBUG
-	int len;
-#endif
+    int len,mlen,player1;
+
     /* Convert command line parameters */
     SecPerMove = (float) atof(argv[1]); /* Time allotted for each move */
     MaxDepth = (argc == 4) ? atoi(argv[3]) : -1;
 
-    fprintf(stderr, "%s SecPerMove == %lg\n", argv[0], SecPerMove);
+fprintf(stderr, "%s SecPerMove == %lg\n", argv[0], SecPerMove);
 
     /* Determine if I am player 1 (red) or player 2 (white) */
-#ifdef DEBUG
-    buf[0] = 'P'; buf[1]='l'; buf[2]='a'; buf[3]='y'; buf[4]='e'; buf[5]='r'; buf[6]='2';
-#else
+    //fgets(buf, sizeof(buf), stdin);
     len=read(STDIN_FILENO,buf,1028);
     buf[len]='\0';
-#endif
-    if(!strncmp(buf,"Player1", strlen("Player1")))
+    if(!strncmp(buf,"Player1", strlen("Player1"))) 
     {
         fprintf(stderr, "I'm Player 1\n");
-        player1 = 1;
+        player1 = 1; 
     }
-    else
+    else 
     {
         fprintf(stderr, "I'm Player 2\n");
         player1 = 0;
     }
     if(player1) me = 1; else me = 2;
 
-    /* Set up the board */
+    /* Set up the board */ 
     ResetBoard();
     srand((unsigned int)time(0));
 
@@ -399,43 +392,35 @@ int main(int argc, char *argv[])
         start = times(&bff);
         goto determine_next_move;
     }
-    int i = 2;
+
     for(;;) {
-#ifdef DEBUG
-    	player1= !(i%2) ? 0 : 1 ;
-    	i++;
-#else
+        /* Read the other player's move from the pipe */
+        //fgets(buf, sizeof(buf), stdin);
         len=read(STDIN_FILENO,buf,1028);
         buf[len]='\0';
-#endif
-        /* Read the other player's move from the pipe */
         start = times(&bff);
         memset(move,0,12*sizeof(char));
 
         /* Update the board to reflect opponents move */
         mlen = TextToMove(buf,move);
         PerformMove(board,move,mlen);
-#ifdef DEBUG
-        PrintBoard(board);
-#endif
-
+        
 determine_next_move:
         /* Find my move, update board, and write move to pipe */
         if(player1) FindBestMove(1); else FindBestMove(2);
         if(bestmove[0] != 0) { /* There is a legal move */
             mlen = MoveLength(bestmove);
-#ifndef DEBUG
-			PerformMove(board,bestmove,mlen);
-#endif
+            PerformMove(board,bestmove,mlen);
             MoveToText(bestmove,buf);
         }
         else exit(1); /* No legal moves available, so I have lost */
 
-	 	/* Write the move to the pipe */
+        /* Write the move to the pipe */
+        //printf("%s", buf);
         write(STDOUT_FILENO,buf,strlen(buf));
-        printf("%s", "\n");
         fflush(stdout);
     }
+
     return 0;
 }
 
@@ -454,22 +439,32 @@ void FindBestMove(int player) {
 	/* Find the legal moves for the current state */
 	FindLegalMoves(&state);
 
-	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = evalBoard(state.movelist[currBestMove]);
-	for (x = 0; x < state.numLegalMoves; x++) {
-		int rval;
-		char nextBoard[8][8];
-		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
-		rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
+	// For now, until you write your search routine, we will just set the best move
+	// to be a random (legal) one, so that it plays a legal game of checkers.
+	// You *will* want to replace this with a more intelligent move seleciton
+	int x;
+	int currBestMove;
+	double currBestVal;
+	if (!jumpptr)
+		for (x = 0; x < state.numLegalMoves; x++) {
+			double rval;
+			char nextBoard[8][8];
+			memcpy(nextBoard, state.board, 64 * sizeof(char));
+			PerformMove(nextBoard, state.movelist[x],
+					MoveLength(state.movelist[x]));
+			rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
 
-		if (currBestVal < rval) {
-			currBestVal = rval;
-			currBestMove = x;
+			if (currBestVal < rval) {
+				currBestVal = rval;
+				currBestMove = x;
+			}
 		}
-	}
-	memcpy(bestmove, state.movelist[currBestMove], MoveLength(state.movelist[currBestMove]));
+	else
+		currBestMove=0; //the jump
+	memcpy(bestmove, state.movelist[currBestMove],
+			MoveLength(state.movelist[currBestMove]));
 }
-/*Find the best move for the other player*/
+
 int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	struct State state;
 	int x;
@@ -493,7 +488,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	}
 	return beta;
 }
-/*Find the best move for us*/
+
 int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	struct State state;
 	int x;
@@ -571,5 +566,4 @@ int positionFunction(int row, int column, int isKing)
 	}
 	return positionValue;
 }
-
 

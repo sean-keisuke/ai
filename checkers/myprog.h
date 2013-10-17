@@ -8,11 +8,19 @@
 #define White 0x80
 
 #define number(x) ((x)&0x1f)
+//number of the square
 #define empty(x) ((((x)>>5)&0x03)==0?1:0)
+//100000
+//if its an empty space then its 6th bit is 0
 #define piece(x) ((((x)>>5)&0x03)==1?1:0)
+//if its a piece then its 6th bit is a 1
 #define king(x) ((((x)>>5)&0x03)==3?1:0)
-#define color(x) ((((x)>>7)&1)+1)
-
+//if its a king then its 6th and 7th bits are 1's
+#define color(x) ((((x)>>7)&1)+1) //has to be 0 or 1 before the 1 is added to it
+//the color is defined by the highest order bit + 1 and its equality should be equal to the player => color(square) == player number
+//bits=> 01100101 = player 1s king on square 5
+//00100000 player 1s piece on square 0
+//10111111 player 2s piece on square 32
 #define Clear 0x1f
 
 struct State {
@@ -38,6 +46,47 @@ struct State {
                   last number in this sequence is the final position of the piece being moved.  */
     int numLegalMoves;
 };
+
+void PrintBoard(char board[8][8])
+{
+	char newBoard[8][8];
+    int x,y;
+    for(y=0; y<8; y++)
+    {
+       for(x=0; x<8; x++)
+       {
+           if(x%2 != y%2) {
+               if(!empty(board[y][x])) {
+            	   if (color(board[y][x]) == 1)
+            	   {
+            		   if (king(board[y][x]))
+            		   {
+            			   newBoard[y][x] = 'R';
+            		   }
+            		   else
+            		   {
+            			   newBoard[y][x] = 'r';
+            		   }
+            	   }
+            	   else
+            	   {
+            		   if (king(board[y][x]))
+					   {
+            			   newBoard[y][x] = 'W';
+					   }
+					   else
+					   {
+						   newBoard[y][x] = 'w';
+					   }
+            	   }
+               } else newBoard[y][x] = ' ';
+           } else newBoard[y][x] = ' ';
+           printf("%c",newBoard[y][x]);
+       }
+       printf("\n");
+    }
+    printf("\n\n\n");
+}
 
 void CopyState(char *dest, char src);
 void ResetBoard(void);
