@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/times.h>
 #include <time.h>
+#include <setjmp.h>
 #include "myprog.h"
 
 #ifndef CLK_TCK
@@ -20,6 +21,8 @@ char bestmove[12];
 int me,cutoff,endgame;
 long NumNodes;
 int MaxDepth;
+int RED = 1;
+int WHITE = 2;
 
 /*** For timing ***/
 clock_t start;
@@ -52,7 +55,7 @@ int LowOnTime(void)
 
     current = times(&bff);
     total = (float) ((float)current-(float)start)/CLK_TCK;
-    if(total >= (SecPerMove-1.0)) return 1; else return 0;
+    if(total >= (SecPerMove-.5)) return 1; else return 0;
 }
 
 /* Copy a square state */
@@ -361,6 +364,16 @@ void PerformMove(char board[8][8], char move[12], int mlen)
 
 int main(int argc, char *argv[])
 {
+	if (argc == 5 && !strncmp(argv[4], "TEST", strlen("TEST")))
+	{
+		testAllRedJumps();
+		testAllWhiteJumps();
+		testAllRed();
+		testAllWhite();
+		testSelection001();
+		testSelection002();
+		return 0;
+	}
     char buf[1028],move[12];
     int mlen,player1;
 #ifndef DEBUG
@@ -368,9 +381,7 @@ int main(int argc, char *argv[])
 #endif
     /* Convert command line parameters */
     SecPerMove = (float) atof(argv[1]); /* Time allotted for each move */
-    MaxDepth = (argc == 4) ? atoi(argv[3]) : -1;
-
-    //fprintf(stderr, "%s SecPerMove == %lg\n", argv[0], SecPerMove);
+//MaxDepth =  17;//(argc == 4) ? atoi(argv[3]) : -1;
 
     /* Determine if I am player 1 (red) or player 2 (white) */
 #ifdef DEBUG
@@ -381,12 +392,10 @@ int main(int argc, char *argv[])
 #endif
     if(!strncmp(buf,"Player1", strlen("Player1")))
     {
-        //fprintf(stderr, "I'm Player 1\n");
         player1 = 1;
     }
     else
     {
-        //fprintf(stderr, "I'm Player 2\n");
         player1 = 0;
     }
     if(player1) me = 1; else me = 2;
@@ -399,7 +408,9 @@ int main(int argc, char *argv[])
         start = times(&bff);
         goto determine_next_move;
     }
+#ifdef DEBUG
     int i = 2;
+#endif
     for(;;) {
 #ifdef DEBUG
     	player1= !(i%2) ? 0 : 1 ;
@@ -420,6 +431,7 @@ int main(int argc, char *argv[])
 #endif
 
 determine_next_move:
+		//MaxDepth = 8;
         /* Find my move, update board, and write move to pipe */
         if(player1) FindBestMove(1); else FindBestMove(2);
         if(bestmove[0] != 0) { /* There is a legal move */
@@ -439,9 +451,6 @@ determine_next_move:
     return 0;
 }
 
-/* Employ your favorite search to find the best move here.  */
-/* This example code shows you how to call the FindLegalMoves function */
-
 /* and the PerformMove function */
 void FindBestMove(int player) {
 	struct State state;
@@ -454,13 +463,14 @@ void FindBestMove(int player) {
 	/* Find the legal moves for the current state */
 	FindLegalMoves(&state);
 
-	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
+//	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
+	int x, currBestMove = -1, currBestVal = -maxInt;
 	for (x = 0; x < state.numLegalMoves; x++) {
 		int rval = 0;
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
-		rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
+		rval = MinVal(nextBoard, -maxInt, maxInt, 1000);
 
 		if (currBestVal < rval) {
 			currBestVal = rval;
@@ -469,6 +479,7 @@ void FindBestMove(int player) {
 	}
 	memcpy(bestmove, state.movelist[currBestMove], MoveLength(state.movelist[currBestMove]));
 }
+
 /*Find the best move for the other player*/
 int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	struct State state;
@@ -477,8 +488,8 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 
 	state.player = (me + 1) % 2;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
-	if (depth <= 0)
-		return evalBoard(&state);
+	if (depth <= 0) return heuristicEvaluation(&state);
+
 	FindLegalMoves(&state);
 
 	for (x = 0; x < state.numLegalMoves; x++) {
@@ -492,6 +503,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	}
 	return beta;
 }
+
 /*Find the best move for us*/
 int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	struct State state;
@@ -500,8 +512,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 
 	state.player = me;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
-	if (depth <= 0)
-		return evalBoard(&state);
+	if (depth <= 0) return heuristicEvaluation(&state);
 	FindLegalMoves(&state);
 
 	for (x = 0; x < state.numLegalMoves; x++) {
@@ -522,78 +533,221 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  * 2. Controlling the middle is of more importance
  * 3. Typically, I don't want to move directly into a position to be jumped
  */
-int evalBoard(struct State * state) {
-	int row, column, p1Score = 0, p2Score = 0;
+int heuristicEvaluation(struct State * state) {
+	int row, column, p1Score = 0, p2Score = 0, numWhitePieces = 0, numRedPieces = 0;
+	static int endGameFlag = 0;
+	int KING_MATERIAL_ADV = 10, KING_PENALTY = -10;
+	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = -5;
 
+
+	if (!endGameFlag)
 	for (row = 0; row < 8; row++)
 		for (column = 0; column < 8; column++) {
-			if (row % 2 != column % 2 && !empty(board[row][column])) {
-				if (color(board[row][column]) == 1) {
-					if (king(board[row][column]))
+			if (row % 2 != column % 2 && !empty(state->board[row][column])) {
+				if (color(state->board[row][column]) == RED) {
+					if (king(state->board[row][column]))
 					{
-						p1Score += 15;
+						p1Score += KING_MATERIAL_ADV;
 					}
-					else if (piece(board[row][column]))
+					else if (piece(state->board[row][column]))
 					{
-						p1Score += 5;
+						p1Score += PAWN_MATERIAL_ADV;
 					}
-					p1Score += positionFunction(row, column, king(board[row][column]), state->player);
+					++numRedPieces;
+//					p1Score += offensivePawns(row, column,  state);
+//					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+//					p1Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+//					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 				else
 				{
-					if (king(board[row][column]))
+					if (king(state->board[row][column]))
 					{
-						p2Score += 15;
+						p2Score += KING_MATERIAL_ADV;
 					}
-					else if (piece(board[row][column]))
+					else if (piece(state->board[row][column]))
 					{
-						p2Score += 5;
+						p2Score += PAWN_MATERIAL_ADV;
 					}
-					p2Score += positionFunction(row, column, king(board[row][column]), state->player);
+					++numWhitePieces;
+//					p2Score += offensivePawns(row, column, state);
+//					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+//					p2Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+//					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
+
+	if (numWhitePieces == 1 && numRedPieces == 1)
+	{
+		exit(0);
+		endGameFlag = 1;
+		//adjust the number of pieces when endgame starts
+	}
 	int difference = p1Score - p2Score;
-	return state->player == 1 ? difference : -1*difference;
+	return state->player == RED ? difference : -1*difference;
 }
 
-int positionFunction(int row, int column, int isKing, int player)
+int hangOnWallsAndHomeRow(int row, int column, int piecesColor)
 {
-	int positionValue = 0;
-	positionValue += canBeJumped(row, column, player) ? isKing ? -15 : -5 : 0 ;
-	if (isKing)
+	int DEFENSIVE_BONUS = 5;
+	if ((piecesColor == RED && row == 0) || (piecesColor == WHITE && row == 7) || ((column == 0 || column == 7) && (row >= 2 && row <= 6)))
 	{
-		//not in the back rows and not on the sides, being more useful in the middle
-		if ((row != 0 && row != 7) && (column != 0 && column != 7))
-		{
-			positionValue += 5;
-		}
-	}
-	else
-	{
-		//is this pawn advancing?
-		positionValue += row;
-	}
-	return positionValue;
-}
-
-/* Initially I am only checking if I can be jumped by pawns
- * note: we are only ever in this method if we are a valid piece*/
-int canBeJumped(int row, int column, int player)
-{
-	//player 1 is red, player 2 is white, bottom of board is white
-	//check two squares in front of me that a piece could be in (or behind me depending on which way I am advancing)
-	int myColor = color(board[row][column]);
-	int rowInFront = row + myColor == 1 ? 1 : -1 ;
-	int firstColToCheck = column + 1;
-	int secondColToCheck = column - 1;
-
-	//if there are enemy pieces there I can be jumped, that's bad mmmkay
-	if (color(board[rowInFront][firstColToCheck]) != myColor || color(board[rowInFront][secondColToCheck]) != myColor)
-	{
-		return 1;
+		return DEFENSIVE_BONUS;
 	}
 	return 0;
 }
 
+int offensivePawns(int row, int column, struct State * state)
+{
+	int advancementBonus = 0;
+	int advancementDirection = color(state->board[row][column]) == RED ? 1 : -1 ;
 
+	//if the piece is beyond the middle give it extra points based on how close it is to becoming a king
+	if (advancementDirection == -1 && row <= 4 && row > 0)
+	{
+		advancementBonus += (4-row)+1;
+	}
+	else if (advancementDirection == 1 && row >= 3 && row < 7)
+	{
+		advancementBonus += (row-3)+1;
+	}
+	return advancementBonus;
+}
+
+int middleKings(int row, int column, struct State * state)
+{
+	int MIDDLE_BONUS = 3;
+	int advancementBonus = 0;
+	int advancementDirection = color(state->board[row][column]) == RED ? 1 : -1 ;
+
+	if (row >= (3+advancementDirection) && row <= (4+advancementDirection))
+	{
+		advancementBonus += MIDDLE_BONUS;
+	}
+	advancementBonus += advancementDirection == -1 ? row : row-7 ;
+	return advancementBonus;
+}
+
+/* Initially I am only checking if I can be jumped by pawns
+ * note: we are only ever in this method if we are a valid piece*/
+int jumpAvoidance(int row, int column, struct State * state)
+{
+    int newCols,advancementDirection,newColumnA,frontRow,newColumnB,rearRow = 0;
+    char possibleEnemy,possibleBlank;
+    advancementDirection = color(state->board[row][column]) == RED ? 1 : -1;
+    //if there is an enemy piece in front of me in either square
+    //and there is an empty space behind me in the opposite square
+    //i can be jumped
+    rearRow = row + (-1*advancementDirection);
+    frontRow = row + (1*advancementDirection);
+    for(newCols=-1; newCols<2; newCols+=2)
+    {
+        newColumnA = column+newCols*advancementDirection;
+        newColumnB = column-newCols*advancementDirection;
+        /* Make sure we're not off the edge of the board */
+        if(rearRow<0 || rearRow>7 || newColumnB<0 || newColumnB>7 || newColumnA<0 || newColumnB>7) continue;
+        possibleEnemy = state->board[frontRow][newColumnA];
+        possibleBlank = state->board[rearRow][newColumnB];
+        /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
+        if(!empty(possibleEnemy) && color(possibleEnemy) != color(state->board[row][column]) && empty(possibleBlank)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+void testAllRedJumps(void)
+{
+	//selection004
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/twoRedOnOneWhite.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != 1 && score2 != -1) fprintf(stderr, "testAllRedJumps Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testAllWhiteJumps(void)
+{
+	//selection003
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/twoWhiteOnOneRed.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != -1 && score2 != 1) fprintf(stderr, "testAllWhiteJumps Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testAllRed(void)
+{
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/allRed.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != 90 && score2 != -90) fprintf(stderr, "testAllRed Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testAllWhite(void)
+{
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/allWhite.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != -90 && score2 != 90) fprintf(stderr, "testAllWhite Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testSelection001(void)
+{
+	//selection001
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/selection001.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != -11 && score2 != 11) fprintf(stderr, "testSelection001 Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testSelection002(void)
+{
+	//selection002
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/selection002.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = 1;
+	int score1 = 0;
+	score1 = heuristicEvaluation(&state1);
+	state1.player = 2;
+	int score2 = 0;
+	score2 = heuristicEvaluation(&state1);
+	if (score1 != 27 && score2 != -27) fprintf(stderr, "testSelection002 Score1 was %d Score2 was %d\n", score1, score2);
+}

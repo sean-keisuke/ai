@@ -106,7 +106,17 @@ int MoveLength(char move[12]);
 int TextToMove(char *mtext, char move[12]);
 void MoveToText(char move[12], char *mtext);
 void PerformMove(char board[8][8], char move[12], int mlen);
-int evalBoard(struct State * state);
-int positionFunction(int x, int y, int isKing, int player);
-int canBeJumped(int x, int y, int player);
+int heuristicEvaluation(struct State * state);
+int offensivePawns(int x, int y, struct State * state);
+int middleKings(int x, int y, struct State * state);
+int jumpAvoidance(int x, int y, struct State * state);
+int hangOnWallsAndHomeRow(int x, int y, int piecesColor);
+
+void testAllRedJumps(void);
+void testAllWhiteJumps(void);
+void testAllRed(void);
+void testAllWhite(void);
+void testSelection001(void);
+void testSelection002(void);
+
 #endif

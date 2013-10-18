@@ -638,7 +638,7 @@ int main(int argc, char *argv[])
      int x,y;
      /* I'll wait a bit to make sure both oponents are ready to go */
      printf("waiting\n");
-     usleep(50000);
+     sleep(1);
      for(x=0;x<1000;x++)
      for(y=0;y<10000;y++);
       }

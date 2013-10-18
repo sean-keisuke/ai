@@ -473,7 +473,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	state.player = (me + 1) % 2;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
 	if (depth <= 0)
-		return evalBoard(&state);
+		return heuristicEvaluation(&state);
 	FindLegalMoves(&state);
 
 	for (x = 0; x < state.numLegalMoves; x++) {
@@ -497,7 +497,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	state.player = me;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
 	if (depth <= 0)
-		return evalBoard(&state);
+		return heuristicEvaluation(&state);
 	FindLegalMoves(&state);
 
 	for (x = 0; x < state.numLegalMoves; x++) {
@@ -518,7 +518,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  * 1. Pawns that are closer to becoming kings are more valuable
  * 2. Controlling the middle is of more importance
  */
-int evalBoard(struct State * state) {
+int heuristicEvaluation(struct State * state) {
 	int row, column, p1Score = 0, p2Score = 0;
 
 	for (row = 0; row < 8; row++)
@@ -533,7 +533,7 @@ int evalBoard(struct State * state) {
 					{
 						p1Score += 5;
 					}
-					p1Score += positionFunction(row, column, king(board[row][column]));
+					p1Score += offensivePawns(row, column, king(board[row][column]));
 				}
 				else
 				{
@@ -545,7 +545,7 @@ int evalBoard(struct State * state) {
 					{
 						p2Score += 5;
 					}
-					p2Score += positionFunction(row, column, king(board[row][column]));
+					p2Score += offensivePawns(row, column, king(board[row][column]));
 				}
 			}
 		}
@@ -553,7 +553,7 @@ int evalBoard(struct State * state) {
 	return state->player == 1 ? difference : -1*difference;
 }
 
-int positionFunction(int row, int column, int isKing)
+int offensivePawns(int row, int column, int isKing)
 {
 	int positionValue = 0;
 	if (isKing)
