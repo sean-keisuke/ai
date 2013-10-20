@@ -105,12 +105,14 @@ void NumberToXY(char num, int *x, int *y);
 int MoveLength(char move[12]);
 int TextToMove(char *mtext, char move[12]);
 void MoveToText(char move[12], char *mtext);
-void PerformMove(char board[8][8], char move[12], int mlen);
+void PerformMove(char board[8][8], char move[12], int mlen, int player);
 int heuristicEvaluation(struct State * state);
 int offensivePawns(int x, int y, struct State * state);
 int middleKings(int x, int y, struct State * state);
 int jumpAvoidance(int x, int y, struct State * state);
 int hangOnWallsAndHomeRow(int x, int y, int piecesColor);
+void TrackPieces(struct State * state);
+void testPiecesBounds1(void);
 
 void testAllRedJumps(void);
 void testAllWhiteJumps(void);

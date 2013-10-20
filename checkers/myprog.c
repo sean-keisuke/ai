@@ -23,6 +23,12 @@ long NumNodes;
 int MaxDepth;
 int RED = 1;
 int WHITE = 2;
+int WHITE_FARTHEST_PIECE = 0;
+int WHITE_CLOSEST_PIECE = 0;
+int RED_FARTHEST_PIECE = 0;
+int RED_CLOSEST_PIECE = 0;
+char redPieces[12];
+char whitePieces[12];
 
 /*** For timing ***/
 clock_t start;
@@ -171,7 +177,7 @@ int FindKingJump(int player, char board[8][8], char move[12], int len, int x, in
         if(y2<0 || y2>7 || x2<0 || x2>7) continue;
         one = board[y1][x1];
         two = board[y2][x2];
-        /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
+        /* If there's an enemy piece adjacent, and an empty square after him, we can jump */
         if(!empty(one) && color(one) != player && empty(two)) {
             /* Update the state of the board, and recurse */
             memcpy(myboard,board,64*sizeof(char));
@@ -206,7 +212,7 @@ int FindJump(int player, char board[8][8], char move[12], int len, int x, int y)
         if(y2<0 || y2>7 || x2<0 || x2>7) continue;
         one = board[y1][x1];
         two = board[y2][x2];
-        /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
+        /* If there's an enemy piece adjacent, and an empty square after him, we can jump */
         if(!empty(one) && color(one) != player && empty(two)) {
             /* Update the state of the board, and recurse */
             memcpy(myboard,board,64*sizeof(char));
@@ -226,27 +232,31 @@ int FindJump(int player, char board[8][8], char move[12], int len, int x, int y)
 /* Determines all of the legal moves possible for a given state */
 int FindLegalMoves(struct State *state)
 {
-    int x,y;
+    int column,row, x, y;
     char move[12], board[8][8];
 
     memset(move,0,12*sizeof(char));
     jumpptr = numLegalMoves = 0;
     memcpy(board,state->board,64*sizeof(char));
-
+    memset(movelist,0,48*12*sizeof(char));
+    memset(jumplist,0,48*12*sizeof(char));
+    
     /* Loop through the board array, determining legal moves/jumps for each piece */
-    for(y=0; y<8; y++)
-    for(x=0; x<8; x++)
+    int begin = state->player == RED ? RED_CLOSEST_PIECE : WHITE_FARTHEST_PIECE;
+    int end = (state->player == RED ? RED_FARTHEST_PIECE : WHITE_CLOSEST_PIECE) + 1;
+    for(row= begin ; row< end; row++)
+    for(column=0; column<8; column++)
     {
-        if(x%2 != y%2 && color(board[y][x]) == state->player && !empty(board[y][x])) {
-            if(king(board[y][x])) { /* King */
-                move[0] = number(board[y][x])+1;
-                FindKingJump(state->player,board,move,1,x,y);
-                if(!jumpptr) FindKingMoves(board,x,y);
+        if(column%2 != row%2 && color(board[row][column]) == state->player && !empty(board[row][column])) {
+            if(king(board[row][column])) { /* King */
+                move[0] = number(board[row][column])+1;
+                FindKingJump(state->player,board,move,1,column,row);
+                if(!jumpptr) FindKingMoves(board,column,row);
             }
-            else if(piece(board[y][x])) { /* Piece */
-                move[0] = number(board[y][x])+1;
-                FindJump(state->player,board,move,1,x,y);
-                if(!jumpptr) FindMoves(state->player,board,x,y);
+            else if(piece(board[row][column])) { /* Piece */
+                move[0] = number(board[row][column])+1;
+                FindJump(state->player,board,move,1,column,row);
+                if(!jumpptr) FindMoves(state->player,board,column,row);
             }
         }
     }
@@ -289,9 +299,7 @@ void NumberToXY(char num, int *x, int *y)
 /* Returns the length of a move */
 int MoveLength(char move[12])
 {
-    int i;
-
-    i = 0;
+    int i = 0;
     while(i<12 && move[i]) i++;
     return i;
 }
@@ -334,7 +342,7 @@ void MoveToText(char move[12], char *mtext)
 }
 
 /* Performs a move on the board, updating the state of the board */
-void PerformMove(char board[8][8], char move[12], int mlen)
+void PerformMove(char board[8][8], char move[12], int mlen, int player)
 {
     int i,j,srcSquareX,srcSquareY,destSquareX,destSquareY,otherDestSquareX,otherDestSquareY, homeRow=0, otherHomeRow=7;
 
@@ -343,9 +351,36 @@ void PerformMove(char board[8][8], char move[12], int mlen)
     CopyState(&board[destSquareY][destSquareX],board[srcSquareY][srcSquareX]);
     if(destSquareY == homeRow || destSquareY == otherHomeRow) board[destSquareY][destSquareX] |= King;
     board[srcSquareY][srcSquareX] &= Clear;
-    NumberToXY(move[1],&otherDestSquareX,&otherDestSquareY);
+
+    //if the square we are moving from contains a piece that is our color
+    if (color(board[srcSquareY][srcSquareX]) == RED)
+    {
+    	//and that piece is the farthest or closest
+    	if (srcSquareY == RED_FARTHEST_PIECE && destSquareY > srcSquareY)
+    	{
+    		//then the new farthest or closest will be where it moves to
+    		RED_FARTHEST_PIECE = destSquareY;
+    	}
+    	else if (srcSquareY == RED_CLOSEST_PIECE && destSquareY < srcSquareY)
+    	{
+    		RED_CLOSEST_PIECE = destSquareY;
+    	}
+    }
+
+    if (color(board[srcSquareY][srcSquareX]) == WHITE)
+    {
+		if (srcSquareY == WHITE_FARTHEST_PIECE && destSquareY < srcSquareY)
+    	{
+			WHITE_FARTHEST_PIECE = destSquareY;
+    	}
+    	else if (srcSquareY == RED_CLOSEST_PIECE && destSquareY > srcSquareY)
+    	{
+    		WHITE_CLOSEST_PIECE = destSquareY;
+    	}
+    }
 
     //if this move is a jump
+    NumberToXY(move[1],&otherDestSquareX,&otherDestSquareY);
     if(abs(otherDestSquareX-srcSquareX) == 2) {
         for(i=0,j=1; j<mlen; i++,j++) {
             if(move[i] > move[j]) {
@@ -366,6 +401,7 @@ int main(int argc, char *argv[])
 {
 	if (argc == 5 && !strncmp(argv[4], "TEST", strlen("TEST")))
 	{
+		testPiecesBounds1();
 		testAllRedJumps();
 		testAllWhiteJumps();
 		testAllRed();
@@ -381,7 +417,7 @@ int main(int argc, char *argv[])
 #endif
     /* Convert command line parameters */
     SecPerMove = (float) atof(argv[1]); /* Time allotted for each move */
-//MaxDepth =  17;//(argc == 4) ? atoi(argv[3]) : -1;
+//	MaxDepth =  17;//(argc == 4) ? atoi(argv[3]) : -1;
 
     /* Determine if I am player 1 (red) or player 2 (white) */
 #ifdef DEBUG
@@ -425,19 +461,19 @@ int main(int argc, char *argv[])
 
         /* Update the board to reflect opponents move */
         mlen = TextToMove(buf,move);
-        PerformMove(board,move,mlen);
+        PerformMove(board,move,mlen, me);
 #ifdef DEBUG
         PrintBoard(board);
 #endif
 
 determine_next_move:
-		//MaxDepth = 8;
+		MaxDepth = 5;
         /* Find my move, update board, and write move to pipe */
         if(player1) FindBestMove(1); else FindBestMove(2);
         if(bestmove[0] != 0) { /* There is a legal move */
             mlen = MoveLength(bestmove);
 #ifndef DEBUG
-			PerformMove(board,bestmove,mlen);
+			PerformMove(board,bestmove,mlen, me);
 #endif
             MoveToText(bestmove,buf);
         }
@@ -457,10 +493,13 @@ void FindBestMove(int player) {
 
 	/* Set up the current state */
 	state.player = player;
+	//based on the player we are, we know what our farthest piece is and our closest piece is
+
 	memcpy(state.board, board, 64 * sizeof(char));
 	memset(bestmove, 0, 12 * sizeof(char));
 
 	/* Find the legal moves for the current state */
+	TrackPieces(&state);
 	FindLegalMoves(&state);
 
 //	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
@@ -469,8 +508,8 @@ void FindBestMove(int player) {
 		int rval = 0;
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
-		rval = MinVal(nextBoard, -maxInt, maxInt, 1000);
+		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), player);
+		rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
 
 		if (currBestVal < rval) {
 			currBestVal = rval;
@@ -495,7 +534,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	for (x = 0; x < state.numLegalMoves; x++) {
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
+		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), state.player);
 		beta = MIN(beta, MaxVal(nextBoard, alpha, beta, depth));
 
 		if (beta <= alpha)
@@ -518,7 +557,7 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	for (x = 0; x < state.numLegalMoves; x++) {
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
-		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]));
+		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), state.player);
 		alpha = MAX(alpha, MinVal(nextBoard, alpha, beta, depth));
 
 		if (alpha >= beta)
@@ -554,10 +593,10 @@ int heuristicEvaluation(struct State * state) {
 						p1Score += PAWN_MATERIAL_ADV;
 					}
 					++numRedPieces;
-//					p1Score += offensivePawns(row, column,  state);
-//					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-//					p1Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
-//					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
+					p1Score += offensivePawns(row, column,  state);
+					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+					p1Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 				else
 				{
@@ -570,10 +609,10 @@ int heuristicEvaluation(struct State * state) {
 						p2Score += PAWN_MATERIAL_ADV;
 					}
 					++numWhitePieces;
-//					p2Score += offensivePawns(row, column, state);
-//					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-//					p2Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
-//					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
+					p2Score += offensivePawns(row, column, state);
+					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+					p2Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
@@ -649,7 +688,7 @@ int jumpAvoidance(int row, int column, struct State * state)
         if(rearRow<0 || rearRow>7 || newColumnB<0 || newColumnB>7 || newColumnA<0 || newColumnB>7) continue;
         possibleEnemy = state->board[frontRow][newColumnA];
         possibleBlank = state->board[rearRow][newColumnB];
-        /* If there's an enemy piece adjacent, and an empty square after hum, we can jump */
+        /* If there's an enemy piece adjacent, and an empty square after him, we can jump */
         if(!empty(possibleEnemy) && color(possibleEnemy) != color(state->board[row][column]) && empty(possibleBlank)) {
             return 1;
         }
@@ -657,6 +696,57 @@ int jumpAvoidance(int row, int column, struct State * state)
     return 0;
 }
 
+void TrackPieces(struct State * state)
+{
+	int row, column, redPieceCounter = 0, whitePieceCounter = 0;
+	int maxRow = -1, minRow = 8;
+	memset(redPieces, 0, 12*sizeof(char));
+
+    for(row=0; row<8; row++)
+    for(column=0; column<8; column++)
+    {
+        if(column%2 != row%2 && color(state->board[row][column]) == RED && !empty(state->board[row][column])) {
+        	redPieces[redPieceCounter] = state->board[row][column];
+        	redPieceCounter++;
+        }
+        else if(column%2 != row%2 && color(state->board[row][column]) == WHITE && !empty(state->board[row][column])) {
+        	whitePieces[whitePieceCounter] = state->board[row][column];
+        	whitePieceCounter++;
+        }
+    }
+
+    int curRow, pieceIndex;
+    for (pieceIndex = 0; pieceIndex < 12; pieceIndex++)
+    {
+
+    	curRow = number(redPieces[pieceIndex])/4;
+    	if (curRow > maxRow)
+    	{
+    		maxRow = curRow;
+    	}
+    	else if (curRow < minRow)
+		{
+			minRow = curRow;
+		}
+    }
+    RED_FARTHEST_PIECE = maxRow;
+    RED_CLOSEST_PIECE = minRow;
+
+    for (pieceIndex = 0; pieceIndex < 12; pieceIndex++)
+    {
+    	curRow = number(whitePieces[pieceIndex])/4;
+    	if (curRow > maxRow)
+    	{
+    		maxRow = curRow;
+    	}
+    	else if (curRow < minRow)
+		{
+			minRow = curRow;
+		}
+    }
+    WHITE_FARTHEST_PIECE = minRow;
+    WHITE_CLOSEST_PIECE = maxRow;
+}
 
 void testAllRedJumps(void)
 {
@@ -736,8 +826,7 @@ void testSelection001(void)
 	if (score1 != -11 && score2 != 11) fprintf(stderr, "testSelection001 Score1 was %d Score2 was %d\n", score1, score2);
 }
 
-void testSelection002(void)
-{
+void testSelection002(void){
 	//selection002
 	FILE* fp;
 	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/selection002.bin", "rb");
@@ -750,4 +839,16 @@ void testSelection002(void)
 	int score2 = 0;
 	score2 = heuristicEvaluation(&state1);
 	if (score1 != 27 && score2 != -27) fprintf(stderr, "testSelection002 Score1 was %d Score2 was %d\n", score1, score2);
+}
+
+void testPiecesBounds1(void)
+{
+	FILE* fp;
+	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/selection002.bin", "rb");
+	struct State state1;
+	fread(state1.board, sizeof(char), 64, fp);
+	state1.player = RED;
+	TrackPieces(&state1);
+	if (RED_FARTHEST_PIECE != 5 && RED_CLOSEST_PIECE != 0) fprintf(stderr, "TestPieceBounds RED_FARTHEST_PIECE was %d RED_CLOSEST_PIECE was %d\n", RED_FARTHEST_PIECE, RED_CLOSEST_PIECE);
+	if (WHITE_FARTHEST_PIECE != 2 && WHITE_CLOSEST_PIECE != 7) fprintf(stderr, "TestPieceBounds WHITE_FARTHEST_PIECE was %d WHITE_CLOSEST_PIECE was %d\n", WHITE_FARTHEST_PIECE, WHITE_CLOSEST_PIECE);
 }
