@@ -18,7 +18,7 @@ int maxInt = 2147483647;
 float SecPerMove;
 char board[8][8];
 char bestmove[12];
-int me,cutoff,endgame;
+int me,cutoff,endgame = 0;
 long NumNodes;
 int MaxDepth;
 int RED = 1;
@@ -350,6 +350,7 @@ void PerformMove(char board[8][8], char move[12], int mlen, int player)
     NumberToXY(move[mlen-1],&destSquareX,&destSquareY);
     CopyState(&board[destSquareY][destSquareX],board[srcSquareY][srcSquareX]);
     if(destSquareY == homeRow || destSquareY == otherHomeRow) board[destSquareY][destSquareX] |= King;
+//    TrackPiece(&board[srcSquareY][srcSquareX], board[destSquareY][destSquareX]);
     board[srcSquareY][srcSquareX] &= Clear;
 
     //if the square we are moving from contains a piece that is our color
@@ -392,6 +393,7 @@ void PerformMove(char board[8][8], char move[12], int mlen, int player)
                 if((move[j]-move[i]) == 7) destSquareX = -1; else destSquareX = 1;
             }
             NumberToXY(move[i],&srcSquareX,&srcSquareY);
+//            UntrackPiece(&board[srcSquareY+destSquareY][srcSquareX+destSquareX]);
             board[srcSquareY+destSquareY][srcSquareX+destSquareX] &= Clear;
         }
     }
@@ -500,6 +502,9 @@ void FindBestMove(int player) {
 
 	/* Find the legal moves for the current state */
 	TrackPieces(&state);
+	char redPiecesSave[12], whitePiecesSave[12];
+	memcpy(redPiecesSave, redPieces, 12*sizeof(char));
+	memcpy(whitePiecesSave, whitePieces, 12*sizeof(char));
 	FindLegalMoves(&state);
 
 //	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
@@ -514,6 +519,10 @@ void FindBestMove(int player) {
 		if (currBestVal < rval) {
 			currBestVal = rval;
 			currBestMove = x;
+		}
+		if (LowOnTime())
+		{
+			return;
 		}
 	}
 	memcpy(bestmove, state.movelist[currBestMove], MoveLength(state.movelist[currBestMove]));
@@ -574,12 +583,10 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  */
 int heuristicEvaluation(struct State * state) {
 	int row, column, p1Score = 0, p2Score = 0, numWhitePieces = 0, numRedPieces = 0;
-	static int endGameFlag = 0;
-	int KING_MATERIAL_ADV = 10, KING_PENALTY = -10;
-	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = -5;
+	int KING_MATERIAL_ADV = 10, KING_PENALTY = 10;
+	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = 5;
 
-
-	if (!endGameFlag)
+	if (!endgame)
 	for (row = 0; row < 8; row++)
 		for (column = 0; column < 8; column++) {
 			if (row % 2 != column % 2 && !empty(state->board[row][column])) {
@@ -595,7 +602,7 @@ int heuristicEvaluation(struct State * state) {
 					++numRedPieces;
 					p1Score += offensivePawns(row, column,  state);
 					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-					p1Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 				else
@@ -611,16 +618,16 @@ int heuristicEvaluation(struct State * state) {
 					++numWhitePieces;
 					p2Score += offensivePawns(row, column, state);
 					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-					p2Score += jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
 
-	if (numWhitePieces == 1 && numRedPieces == 1)
+	if (numWhitePieces <= 4 || numRedPieces <= 4)
 	{
 		exit(0);
-		endGameFlag = 1;
+		endgame = 1;
 		//adjust the number of pieces when endgame starts
 	}
 	int difference = p1Score - p2Score;
@@ -746,6 +753,57 @@ void TrackPieces(struct State * state)
     }
     WHITE_FARTHEST_PIECE = minRow;
     WHITE_CLOSEST_PIECE = maxRow;
+}
+
+void TrackPiece(char oldPiece, char newPiece)
+{
+	int i;
+	if (color(oldPiece)==RED)
+	{
+		for (i=0;i<12;i++)
+		{
+			if (oldPiece == redPieces[i])
+			{
+				redPieces[i] = newPiece;
+			}
+		}
+	}
+	else
+	{
+		for (i=0;i<12;i++)
+		{
+			if (oldPiece == whitePieces[i])
+			{
+				whitePieces[i] = newPiece;
+			}
+		}
+	}
+}
+
+void UntrackPiece(char jumpedPiece)
+{
+	int pieceColor = color(jumpedPiece);
+	int i;
+	if (pieceColor == RED)
+	{
+		for (i = 0; i < 12; i++)
+		{
+			if (jumpedPiece == redPieces[i])
+			{
+				redPieces[i] = 0;
+			}
+		}
+	}
+	else
+	{
+		for (i = 0; i < 12; i++)
+		{
+			if (jumpedPiece == whitePieces[i])
+			{
+				whitePieces[i] = 0;
+			}
+		}
+	}
 }
 
 void testAllRedJumps(void)
