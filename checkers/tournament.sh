@@ -20,7 +20,11 @@ let TWOWINS="$(cat results.txt | grep -o 1 | wc -l)"
 let ONEWINS="$(cat results.txt | grep -o 2 | wc -l)"
 echo "I won $(bc -l <<< "scale=2;$TWOWINS/$TOTAL") of games"
 echo "$2 won $(bc -l <<< "scale=2;$ONEWINS/$TOTAL") of games"
+
 rm results.txt  
 mv output.txt $2_$1_$3_$(date "+%s")
-mv $2_$1_$3_$(date "+%s") outputs/
+
 echo "Produced $2_$1_$3_$(date "+%s")"
+echo "I lost $(grep -i time $2_$1_$3_$(date "+%s") | wc -l) due to timing out"
+echo "I lost $(grep -i illegal $2_$1_$3_$(date "+%s") | wc -l) due to illegal moves"
+mv $2_$1_$3_$(date "+%s") outputs/

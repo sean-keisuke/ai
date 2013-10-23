@@ -29,6 +29,9 @@ int RED_FARTHEST_PIECE = 0;
 int RED_CLOSEST_PIECE = 0;
 char redPieces[12];
 char whitePieces[12];
+int threeSecondDepth = 6;
+int oneSecondDepth = 2;
+int tenSecondDepth = 5;
 
 /*** For timing ***/
 clock_t start;
@@ -242,8 +245,10 @@ int FindLegalMoves(struct State *state)
     memset(jumplist,0,48*12*sizeof(char));
     
     /* Loop through the board array, determining legal moves/jumps for each piece */
-    int begin = state->player == RED ? RED_CLOSEST_PIECE : WHITE_FARTHEST_PIECE;
-    int end = (state->player == RED ? RED_FARTHEST_PIECE : WHITE_CLOSEST_PIECE) + 1;
+//    int begin = state->player == RED ? RED_CLOSEST_PIECE : WHITE_FARTHEST_PIECE;
+//    int end = (state->player == RED ? RED_FARTHEST_PIECE : WHITE_CLOSEST_PIECE) + 1;
+    int begin = 0;
+    int end = 8;
     for(row= begin ; row< end; row++)
     for(column=0; column<8; column++)
     {
@@ -469,7 +474,8 @@ int main(int argc, char *argv[])
 #endif
 
 determine_next_move:
-		MaxDepth = 5;
+
+		MaxDepth = SecPerMove == 1 ? oneSecondDepth : SecPerMove == 3 ? threeSecondDepth : tenSecondDepth ;
         /* Find my move, update board, and write move to pipe */
         if(player1) FindBestMove(1); else FindBestMove(2);
         if(bestmove[0] != 0) { /* There is a legal move */
@@ -501,10 +507,8 @@ void FindBestMove(int player) {
 	memset(bestmove, 0, 12 * sizeof(char));
 
 	/* Find the legal moves for the current state */
-	TrackPieces(&state);
-	char redPiecesSave[12], whitePiecesSave[12];
-	memcpy(redPiecesSave, redPieces, 12*sizeof(char));
-	memcpy(whitePiecesSave, whitePieces, 12*sizeof(char));
+//	TrackPieces(&state);
+//	int redFarBound = RED_FARTHEST_PIECE, redCloseBound = RED_CLOSEST_PIECE, whiteFarBound = WHITE_FARTHEST_PIECE, whiteCloseBound = WHITE_CLOSEST_PIECE;
 	FindLegalMoves(&state);
 
 //	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
@@ -515,7 +519,7 @@ void FindBestMove(int player) {
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), player);
 		rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
-
+//		RED_FARTHEST_PIECE = redFarBound; RED_CLOSEST_PIECE = redCloseBound; WHITE_FARTHEST_PIECE = whiteFarBound; WHITE_CLOSEST_PIECE = whiteCloseBound;
 		if (currBestVal < rval) {
 			currBestVal = rval;
 			currBestMove = x;
@@ -534,7 +538,7 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	int x;
 	depth--;
 
-	state.player = (me + 1) % 2;
+	state.player = me == RED ? WHITE : RED ;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
 	if (depth <= 0) return heuristicEvaluation(&state);
 
@@ -583,8 +587,8 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  */
 int heuristicEvaluation(struct State * state) {
 	int row, column, p1Score = 0, p2Score = 0, numWhitePieces = 0, numRedPieces = 0;
-	int KING_MATERIAL_ADV = 10, KING_PENALTY = 10;
-	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = 5;
+	int KING_MATERIAL_ADV = 10, KING_PENALTY = endgame ? 0 : 10;
+	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = endgame ? 0 : 5;
 
 	if (!endgame)
 	for (row = 0; row < 8; row++)
@@ -600,9 +604,9 @@ int heuristicEvaluation(struct State * state) {
 						p1Score += PAWN_MATERIAL_ADV;
 					}
 					++numRedPieces;
-					p1Score += offensivePawns(row, column,  state);
-					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+//					p1Score += offensivePawns(row, column,  state);
+//					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+//					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 				else
@@ -616,28 +620,28 @@ int heuristicEvaluation(struct State * state) {
 						p2Score += PAWN_MATERIAL_ADV;
 					}
 					++numWhitePieces;
-					p2Score += offensivePawns(row, column, state);
-					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
-					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
+//					p2Score += offensivePawns(row, column, state);
+//					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
+//					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
 
-	if (numWhitePieces <= 4 || numRedPieces <= 4)
+	if (me == RED ? numRedPieces <= 4 : numWhitePieces <= 4)
 	{
-		exit(0);
 		endgame = 1;
-		//adjust the number of pieces when endgame starts
+		AdjustEndGameDepth(numWhitePieces, numRedPieces, me);
 	}
 	int difference = p1Score - p2Score;
-	return state->player == RED ? difference : -1*difference;
+	return me == RED ? difference : -1*difference;
 }
 
 int hangOnWallsAndHomeRow(int row, int column, int piecesColor)
 {
-	int DEFENSIVE_BONUS = 5;
-	if ((piecesColor == RED && row == 0) || (piecesColor == WHITE && row == 7) || ((column == 0 || column == 7) && (row >= 2 && row <= 6)))
+	int DEFENSIVE_BONUS = endgame ? -10 : 5 ;
+	if ((piecesColor == RED && me == RED && row == 0) || (piecesColor == WHITE && me == WHITE && row == 7) ||
+			((piecesColor == WHITE && me == WHITE && (column == 0 || column == 7)))) //&& (row >= 2 && row <= 6)))
 	{
 		return DEFENSIVE_BONUS;
 	}
@@ -663,7 +667,7 @@ int offensivePawns(int row, int column, struct State * state)
 
 int middleKings(int row, int column, struct State * state)
 {
-	int MIDDLE_BONUS = 3;
+	int MIDDLE_BONUS = endgame ? 6 : 3;
 	int advancementBonus = 0;
 	int advancementDirection = color(state->board[row][column]) == RED ? 1 : -1 ;
 
@@ -803,6 +807,25 @@ void UntrackPiece(char jumpedPiece)
 				whitePieces[i] = 0;
 			}
 		}
+	}
+}
+
+void AdjustEndGameDepth(int numWhitePieces, int numRedPieces, int player)
+{
+	switch (player == RED ? numRedPieces : numWhitePieces)
+	{
+	case 4:
+		MaxDepth = 7;
+		break;
+	case 3:
+		MaxDepth = 7;
+		break;
+	case 2:
+		MaxDepth = 7;
+		break;
+	case 1:
+		MaxDepth = 7;
+		break;
 	}
 }
 
