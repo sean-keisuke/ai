@@ -81,11 +81,11 @@ void PrintBoard(char board[8][8])
             	   }
                } else newBoard[y][x] = ' ';
            } else newBoard[y][x] = ' ';
-           printf("%c",newBoard[y][x]);
+           fprintf(stderr,"%c",newBoard[y][x]);
        }
-       printf("\n");
+       fprintf(stderr,"\n");
     }
-    printf("\n\n\n");
+    fprintf(stderr,"\n\n\n");
 }
 
 void CopyState(char *dest, char src);

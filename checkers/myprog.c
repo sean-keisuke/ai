@@ -504,13 +504,14 @@ void FindBestMove(int player) {
 	//based on the player we are, we know what our farthest piece is and our closest piece is
 
 	memcpy(state.board, board, 64 * sizeof(char));
-	memset(bestmove, 0, 12 * sizeof(char));
 
 	/* Find the legal moves for the current state */
 //	TrackPieces(&state);
 //	int redFarBound = RED_FARTHEST_PIECE, redCloseBound = RED_CLOSEST_PIECE, whiteFarBound = WHITE_FARTHEST_PIECE, whiteCloseBound = WHITE_CLOSEST_PIECE;
 	FindLegalMoves(&state);
 
+	memset(bestmove, 0, 12 * sizeof(char));
+// @@@ Copy a random move into bestmove here
 //	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
 	int x, currBestMove = -1, currBestVal = -maxInt;
 	for (x = 0; x < state.numLegalMoves; x++) {
@@ -604,10 +605,10 @@ int heuristicEvaluation(struct State * state) {
 						p1Score += PAWN_MATERIAL_ADV;
 					}
 					++numRedPieces;
-//					p1Score += offensivePawns(row, column,  state);
+					p1Score += offensivePawns(row, column,  state);
 //					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
-					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
+//					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 				else
 				{
@@ -620,20 +621,27 @@ int heuristicEvaluation(struct State * state) {
 						p2Score += PAWN_MATERIAL_ADV;
 					}
 					++numWhitePieces;
-//					p2Score += offensivePawns(row, column, state);
+					p2Score += offensivePawns(row, column, state);
 //					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
-					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
+//					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
 
-	if (me == RED ? numRedPieces <= 4 : numWhitePieces <= 4)
+	/*if (me == RED ? numRedPieces <= 4 : numWhitePieces <= 4)
 	{
 		endgame = 1;
 		AdjustEndGameDepth(numWhitePieces, numRedPieces, me);
-	}
+	}*/
 	int difference = p1Score - p2Score;
+	/*fprintf(stderr,"************************************************************\n");
+	fprintf(stderr,"************************************************************\n");
+	PrintBoard(state->board);
+	fprintf(stderr,"%i\n",me == RED ? difference : -1*difference);
+	fprintf(stderr,"************************************************************\n");
+	fprintf(stderr,"************************************************************\n");
+	fflush(stderr);*/
 	return me == RED ? difference : -1*difference;
 }
 
