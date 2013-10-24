@@ -605,7 +605,7 @@ int heuristicEvaluation(struct State * state) {
 						p1Score += PAWN_MATERIAL_ADV;
 					}
 					++numRedPieces;
-					p1Score += offensivePawns(row, column,  state);
+//					p1Score += offensivePawns(row, column,  state);
 //					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 //					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
@@ -621,7 +621,7 @@ int heuristicEvaluation(struct State * state) {
 						p2Score += PAWN_MATERIAL_ADV;
 					}
 					++numWhitePieces;
-					p2Score += offensivePawns(row, column, state);
+//					p2Score += offensivePawns(row, column, state);
 //					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 //					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
@@ -648,11 +648,24 @@ int heuristicEvaluation(struct State * state) {
 int hangOnWallsAndHomeRow(int row, int column, int piecesColor)
 {
 	int DEFENSIVE_BONUS = endgame ? -10 : 5 ;
-	if ((piecesColor == RED && me == RED && row == 0) || (piecesColor == WHITE && me == WHITE && row == 7) ||
+/*	if ((piecesColor == RED && me == RED && row == 0) || (piecesColor == WHITE && me == WHITE && row == 7) ||
 			((piecesColor == WHITE && me == WHITE && (column == 0 || column == 7)))) //&& (row >= 2 && row <= 6)))
 	{
 		return DEFENSIVE_BONUS;
 	}
+*/	
+	if (piecesColor == RED && me == RED)
+	{
+		if (row ==0 || ((column == 0 || column == 7)&& row >= 2))
+			return DEFENSIVE_BONUS;
+			
+	}
+	else if (piecesColor == WHITE && me == WHITE)
+	{
+                if (row == 7 || ((column == 0 || column == 7)&& row >= 6))
+                        return DEFENSIVE_BONUS;
+	}
+	
 	return 0;
 }
 
