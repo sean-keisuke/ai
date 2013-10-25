@@ -8,11 +8,11 @@
 #include <setjmp.h>
 #include "myprog.h"
 
-#ifndef CLK_TCK
-#define CLK_TCK CLOCKS_PER_SEC
+//#ifndef CLK_TCK
+//#define CLK_TCK CLOCKS_PER_SEC
+//#endif
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#endif
 
 int maxInt = 2147483647;
 float SecPerMove;
@@ -23,18 +23,13 @@ long NumNodes;
 int MaxDepth;
 int RED = 1;
 int WHITE = 2;
-int WHITE_FARTHEST_PIECE = 0;
-int WHITE_CLOSEST_PIECE = 0;
-int RED_FARTHEST_PIECE = 0;
-int RED_CLOSEST_PIECE = 0;
-char redPieces[12];
-char whitePieces[12];
 int threeSecondDepth = 6;
-int oneSecondDepth = 2;
-int tenSecondDepth = 5;
+int oneSecondDepth = 4;
+int tenSecondDepth = 7;
+jmp_buf env;
 
 /*** For timing ***/
-clock_t start;
+clock_t start_t;
 struct tms bff;
 
 /*** For the jump list ***/
@@ -51,20 +46,26 @@ void PrintTime(void)
     clock_t current;
     float total;
 
-    current = times(&bff);
-    total = (float) ((float)current-(float)start)/CLK_TCK;
+    current = clock();
+    total = (float) ((float)current-(float)start_t)/(int)CLOCKS_PER_SEC;
     fprintf(stderr, "Time = %f\n", total);
 }
 
 /* Determine if I'm low on time */
 int LowOnTime(void)
 {
+
     clock_t current;
     float total;
 
-    current = times(&bff);
-    total = (float) ((float)current-(float)start)/CLK_TCK;
-    if(total >= (SecPerMove-.5)) return 1; else return 0;
+    current = clock();
+    total = (float) ((float)current-(float)start_t)/CLOCKS_PER_SEC;
+    if(total >= (SecPerMove- SecPerMove != 1 ? .5 : .25))
+    {
+    	fprintf(stderr, "YES, I AM LOW ON TIME\n");
+    	return 1;
+    }
+    else return 0;
 }
 
 /* Copy a square state */
@@ -235,6 +236,7 @@ int FindJump(int player, char board[8][8], char move[12], int len, int x, int y)
 /* Determines all of the legal moves possible for a given state */
 int FindLegalMoves(struct State *state)
 {
+//	fprintf(stderr, "FindLegalMove\n");
     int column,row, x, y;
     char move[12], board[8][8];
 
@@ -245,11 +247,7 @@ int FindLegalMoves(struct State *state)
     memset(jumplist,0,48*12*sizeof(char));
     
     /* Loop through the board array, determining legal moves/jumps for each piece */
-//    int begin = state->player == RED ? RED_CLOSEST_PIECE : WHITE_FARTHEST_PIECE;
-//    int end = (state->player == RED ? RED_FARTHEST_PIECE : WHITE_CLOSEST_PIECE) + 1;
-    int begin = 0;
-    int end = 8;
-    for(row= begin ; row< end; row++)
+    for(row=0; row<8; row++)
     for(column=0; column<8; column++)
     {
         if(column%2 != row%2 && color(board[row][column]) == state->player && !empty(board[row][column])) {
@@ -355,35 +353,7 @@ void PerformMove(char board[8][8], char move[12], int mlen, int player)
     NumberToXY(move[mlen-1],&destSquareX,&destSquareY);
     CopyState(&board[destSquareY][destSquareX],board[srcSquareY][srcSquareX]);
     if(destSquareY == homeRow || destSquareY == otherHomeRow) board[destSquareY][destSquareX] |= King;
-//    TrackPiece(&board[srcSquareY][srcSquareX], board[destSquareY][destSquareX]);
     board[srcSquareY][srcSquareX] &= Clear;
-
-    //if the square we are moving from contains a piece that is our color
-    if (color(board[srcSquareY][srcSquareX]) == RED)
-    {
-    	//and that piece is the farthest or closest
-    	if (srcSquareY == RED_FARTHEST_PIECE && destSquareY > srcSquareY)
-    	{
-    		//then the new farthest or closest will be where it moves to
-    		RED_FARTHEST_PIECE = destSquareY;
-    	}
-    	else if (srcSquareY == RED_CLOSEST_PIECE && destSquareY < srcSquareY)
-    	{
-    		RED_CLOSEST_PIECE = destSquareY;
-    	}
-    }
-
-    if (color(board[srcSquareY][srcSquareX]) == WHITE)
-    {
-		if (srcSquareY == WHITE_FARTHEST_PIECE && destSquareY < srcSquareY)
-    	{
-			WHITE_FARTHEST_PIECE = destSquareY;
-    	}
-    	else if (srcSquareY == RED_CLOSEST_PIECE && destSquareY > srcSquareY)
-    	{
-    		WHITE_CLOSEST_PIECE = destSquareY;
-    	}
-    }
 
     //if this move is a jump
     NumberToXY(move[1],&otherDestSquareX,&otherDestSquareY);
@@ -398,7 +368,6 @@ void PerformMove(char board[8][8], char move[12], int mlen, int player)
                 if((move[j]-move[i]) == 7) destSquareX = -1; else destSquareX = 1;
             }
             NumberToXY(move[i],&srcSquareX,&srcSquareY);
-//            UntrackPiece(&board[srcSquareY+destSquareY][srcSquareX+destSquareX]);
             board[srcSquareY+destSquareY][srcSquareX+destSquareX] &= Clear;
         }
     }
@@ -408,7 +377,6 @@ int main(int argc, char *argv[])
 {
 	if (argc == 5 && !strncmp(argv[4], "TEST", strlen("TEST")))
 	{
-		testPiecesBounds1();
 		testAllRedJumps();
 		testAllWhiteJumps();
 		testAllRed();
@@ -424,7 +392,6 @@ int main(int argc, char *argv[])
 #endif
     /* Convert command line parameters */
     SecPerMove = (float) atof(argv[1]); /* Time allotted for each move */
-//	MaxDepth =  17;//(argc == 4) ? atoi(argv[3]) : -1;
 
     /* Determine if I am player 1 (red) or player 2 (white) */
 #ifdef DEBUG
@@ -445,10 +412,9 @@ int main(int argc, char *argv[])
 
     /* Set up the board */
     ResetBoard();
-    srand((unsigned int)time(0));
 
     if (player1) {
-        start = times(&bff);
+        start_t = clock();
         goto determine_next_move;
     }
 #ifdef DEBUG
@@ -463,7 +429,7 @@ int main(int argc, char *argv[])
         buf[len]='\0';
 #endif
         /* Read the other player's move from the pipe */
-        start = times(&bff);
+        start_t = clock();
         memset(move,0,12*sizeof(char));
 
         /* Update the board to reflect opponents move */
@@ -501,43 +467,44 @@ void FindBestMove(int player) {
 
 	/* Set up the current state */
 	state.player = player;
-	//based on the player we are, we know what our farthest piece is and our closest piece is
 
 	memcpy(state.board, board, 64 * sizeof(char));
 
 	/* Find the legal moves for the current state */
-//	TrackPieces(&state);
-//	int redFarBound = RED_FARTHEST_PIECE, redCloseBound = RED_CLOSEST_PIECE, whiteFarBound = WHITE_FARTHEST_PIECE, whiteCloseBound = WHITE_CLOSEST_PIECE;
 	FindLegalMoves(&state);
 
 	memset(bestmove, 0, 12 * sizeof(char));
-// @@@ Copy a random move into bestmove here
-//	int x, currBestMove = rand()%state.numLegalMoves, currBestVal = 0;
 	int x, currBestMove = -1, currBestVal = -maxInt;
 	for (x = 0; x < state.numLegalMoves; x++) {
 		int rval = 0;
 		char nextBoard[8][8];
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), player);
+
+		int i = setjmp(env);
+		if (i != 0) goto bailout;
+
 		rval = MinVal(nextBoard, -maxInt, maxInt, MaxDepth);
-//		RED_FARTHEST_PIECE = redFarBound; RED_CLOSEST_PIECE = redCloseBound; WHITE_FARTHEST_PIECE = whiteFarBound; WHITE_CLOSEST_PIECE = whiteCloseBound;
 		if (currBestVal < rval) {
 			currBestVal = rval;
 			currBestMove = x;
 		}
-		if (LowOnTime())
+bailout:
+		if (LowOnTime() && numLegalMoves != 0)
 		{
-			return;
+			fprintf(stderr, "Low on time, picking random move\n");
+			PrintTime();
+			memcpy(bestmove, state.movelist[rand()%state.numLegalMoves], 12 * sizeof(char));
 		}
 	}
 	memcpy(bestmove, state.movelist[currBestMove], MoveLength(state.movelist[currBestMove]));
 }
 
-/*Find the best move for the other player*/
 int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 	struct State state;
 	int x;
 	depth--;
+
 
 	state.player = me == RED ? WHITE : RED ;
 	memcpy(state.board, currBoard, 64 * sizeof(char));
@@ -550,7 +517,10 @@ int MinVal(char currBoard[8][8], int alpha, int beta, int depth) {
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), state.player);
 		beta = MIN(beta, MaxVal(nextBoard, alpha, beta, depth));
-
+		if (LowOnTime())
+		{
+			longjmp(env, 1);
+		}
 		if (beta <= alpha)
 			return alpha;
 	}
@@ -573,7 +543,10 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
 		memcpy(nextBoard, state.board, 64 * sizeof(char));
 		PerformMove(nextBoard, state.movelist[x], MoveLength(state.movelist[x]), state.player);
 		alpha = MAX(alpha, MinVal(nextBoard, alpha, beta, depth));
-
+		if (LowOnTime())
+		{
+			longjmp(env, 1);
+		}
 		if (alpha >= beta)
 			return beta;
 	}
@@ -587,9 +560,10 @@ int MaxVal(char currBoard[8][8], int alpha, int beta, int depth) {
  * 3. Typically, I don't want to move directly into a position to be jumped
  */
 int heuristicEvaluation(struct State * state) {
+
 	int row, column, p1Score = 0, p2Score = 0, numWhitePieces = 0, numRedPieces = 0;
-	int KING_MATERIAL_ADV = 10, KING_PENALTY = endgame ? 0 : 10;
-	int PAWN_MATERIAL_ADV = 5, PAWN_PENALTY = endgame ? 0 : 5;
+	int KING_MATERIAL_ADV = 10;
+	int PAWN_MATERIAL_ADV = 5;
 
 	if (!endgame)
 	for (row = 0; row < 8; row++)
@@ -605,7 +579,6 @@ int heuristicEvaluation(struct State * state) {
 						p1Score += PAWN_MATERIAL_ADV;
 					}
 					++numRedPieces;
-//					p1Score += offensivePawns(row, column,  state);
 //					p1Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p1Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 //					p1Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
@@ -621,27 +594,13 @@ int heuristicEvaluation(struct State * state) {
 						p2Score += PAWN_MATERIAL_ADV;
 					}
 					++numWhitePieces;
-//					p2Score += offensivePawns(row, column, state);
 //					p2Score += king(state->board[row][column]) ? middleKings(row, column, state) : 0;
 //					p2Score -= jumpAvoidance(row, column, state) ? king(state->board[row][column]) ? KING_PENALTY : PAWN_PENALTY : 0 ;
 //					p2Score += hangOnWallsAndHomeRow(row, column, color(state->board[row][column]));
 				}
 			}
 		}
-
-	/*if (me == RED ? numRedPieces <= 4 : numWhitePieces <= 4)
-	{
-		endgame = 1;
-		AdjustEndGameDepth(numWhitePieces, numRedPieces, me);
-	}*/
 	int difference = p1Score - p2Score;
-	/*fprintf(stderr,"************************************************************\n");
-	fprintf(stderr,"************************************************************\n");
-	PrintBoard(state->board);
-	fprintf(stderr,"%i\n",me == RED ? difference : -1*difference);
-	fprintf(stderr,"************************************************************\n");
-	fprintf(stderr,"************************************************************\n");
-	fflush(stderr);*/
 	return me == RED ? difference : -1*difference;
 }
 
@@ -667,23 +626,6 @@ int hangOnWallsAndHomeRow(int row, int column, int piecesColor)
 	}
 	
 	return 0;
-}
-
-int offensivePawns(int row, int column, struct State * state)
-{
-	int advancementBonus = 0;
-	int advancementDirection = color(state->board[row][column]) == RED ? 1 : -1 ;
-
-	//if the piece is beyond the middle give it extra points based on how close it is to becoming a king
-	if (advancementDirection == -1 && row <= 4 && row > 0)
-	{
-		advancementBonus += (4-row)+1;
-	}
-	else if (advancementDirection == 1 && row >= 3 && row < 7)
-	{
-		advancementBonus += (row-3)+1;
-	}
-	return advancementBonus;
 }
 
 int middleKings(int row, int column, struct State * state)
@@ -726,128 +668,6 @@ int jumpAvoidance(int row, int column, struct State * state)
         }
     }
     return 0;
-}
-
-void TrackPieces(struct State * state)
-{
-	int row, column, redPieceCounter = 0, whitePieceCounter = 0;
-	int maxRow = -1, minRow = 8;
-	memset(redPieces, 0, 12*sizeof(char));
-
-    for(row=0; row<8; row++)
-    for(column=0; column<8; column++)
-    {
-        if(column%2 != row%2 && color(state->board[row][column]) == RED && !empty(state->board[row][column])) {
-        	redPieces[redPieceCounter] = state->board[row][column];
-        	redPieceCounter++;
-        }
-        else if(column%2 != row%2 && color(state->board[row][column]) == WHITE && !empty(state->board[row][column])) {
-        	whitePieces[whitePieceCounter] = state->board[row][column];
-        	whitePieceCounter++;
-        }
-    }
-
-    int curRow, pieceIndex;
-    for (pieceIndex = 0; pieceIndex < 12; pieceIndex++)
-    {
-
-    	curRow = number(redPieces[pieceIndex])/4;
-    	if (curRow > maxRow)
-    	{
-    		maxRow = curRow;
-    	}
-    	else if (curRow < minRow)
-		{
-			minRow = curRow;
-		}
-    }
-    RED_FARTHEST_PIECE = maxRow;
-    RED_CLOSEST_PIECE = minRow;
-
-    for (pieceIndex = 0; pieceIndex < 12; pieceIndex++)
-    {
-    	curRow = number(whitePieces[pieceIndex])/4;
-    	if (curRow > maxRow)
-    	{
-    		maxRow = curRow;
-    	}
-    	else if (curRow < minRow)
-		{
-			minRow = curRow;
-		}
-    }
-    WHITE_FARTHEST_PIECE = minRow;
-    WHITE_CLOSEST_PIECE = maxRow;
-}
-
-void TrackPiece(char oldPiece, char newPiece)
-{
-	int i;
-	if (color(oldPiece)==RED)
-	{
-		for (i=0;i<12;i++)
-		{
-			if (oldPiece == redPieces[i])
-			{
-				redPieces[i] = newPiece;
-			}
-		}
-	}
-	else
-	{
-		for (i=0;i<12;i++)
-		{
-			if (oldPiece == whitePieces[i])
-			{
-				whitePieces[i] = newPiece;
-			}
-		}
-	}
-}
-
-void UntrackPiece(char jumpedPiece)
-{
-	int pieceColor = color(jumpedPiece);
-	int i;
-	if (pieceColor == RED)
-	{
-		for (i = 0; i < 12; i++)
-		{
-			if (jumpedPiece == redPieces[i])
-			{
-				redPieces[i] = 0;
-			}
-		}
-	}
-	else
-	{
-		for (i = 0; i < 12; i++)
-		{
-			if (jumpedPiece == whitePieces[i])
-			{
-				whitePieces[i] = 0;
-			}
-		}
-	}
-}
-
-void AdjustEndGameDepth(int numWhitePieces, int numRedPieces, int player)
-{
-	switch (player == RED ? numRedPieces : numWhitePieces)
-	{
-	case 4:
-		MaxDepth = 7;
-		break;
-	case 3:
-		MaxDepth = 7;
-		break;
-	case 2:
-		MaxDepth = 7;
-		break;
-	case 1:
-		MaxDepth = 7;
-		break;
-	}
 }
 
 void testAllRedJumps(void)
@@ -941,16 +761,4 @@ void testSelection002(void){
 	int score2 = 0;
 	score2 = heuristicEvaluation(&state1);
 	if (score1 != 27 && score2 != -27) fprintf(stderr, "testSelection002 Score1 was %d Score2 was %d\n", score1, score2);
-}
-
-void testPiecesBounds1(void)
-{
-	FILE* fp;
-	fp = fopen ("/home/reuben/dev/ai/checkers/makeboard/boards/selection002.bin", "rb");
-	struct State state1;
-	fread(state1.board, sizeof(char), 64, fp);
-	state1.player = RED;
-	TrackPieces(&state1);
-	if (RED_FARTHEST_PIECE != 5 && RED_CLOSEST_PIECE != 0) fprintf(stderr, "TestPieceBounds RED_FARTHEST_PIECE was %d RED_CLOSEST_PIECE was %d\n", RED_FARTHEST_PIECE, RED_CLOSEST_PIECE);
-	if (WHITE_FARTHEST_PIECE != 2 && WHITE_CLOSEST_PIECE != 7) fprintf(stderr, "TestPieceBounds WHITE_FARTHEST_PIECE was %d WHITE_CLOSEST_PIECE was %d\n", WHITE_FARTHEST_PIECE, WHITE_CLOSEST_PIECE);
 }
