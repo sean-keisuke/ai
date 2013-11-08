@@ -6,25 +6,42 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.StringTokenizer;
 
 /**
  * @author reuben
  */
 public class dtanner {
-
+    private static int numBags;
+    private static int maxBagSpace;
+    private static HashSet<Item> items;
+    
     public static void main(String[] args)
     {
         parseFile(Paths.get(args[0]));
+        
+        Bag[] bags = new Bag[numBags];
+        
+        for (int i = 0; i < numBags; i++)
+        {
+            bags[i] = new Bag(maxBagSpace);
+        }
+        
+        Solver solver = new Solver(bags, items);
+        
+        System.out.println(solver.solve());
     }
 
+    /**
+     * TODO:consider refactoring all high level objects to be arrays
+     * @param paths 
+     */
     private static void parseFile(Path paths)
     {
-        int numBags = 0;
-        int maxBagSpace = 0;
-        List<Item> items = new LinkedList<>();
+        items = new HashSet<>();
         try (BufferedReader reader = Files.newBufferedReader(paths, Charset.defaultCharset()))
         {
             String line = null;
@@ -74,11 +91,12 @@ public class dtanner {
         String name = "";
         int weight = 0;
         char posneg = '\0';
-        List<String> items = new LinkedList<>();
+        ArrayList<Integer> itemIndices = new ArrayList<>();
 
         StringTokenizer tok = new StringTokenizer(line, " ");
         String token = "";
         int tokCount = 0;
+
         while (tok.hasMoreTokens())
         {
             switch (tokCount)
@@ -98,22 +116,39 @@ public class dtanner {
                     }
                     break;
                 case 2:
-                    posneg = tok.nextToken().charAt(0);
+                        posneg = tok.nextToken().charAt(0);
                     break;
                 default:
-                    items.add(tok.nextToken());
+                    try
+                    {
+                        itemIndices.add(Integer.parseInt(tok.nextToken().substring(4)));
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        System.err.println("Names of items aren't of form \"itemxx\" where xx are integers");
+                        System.exit(1);
+                    }
                     break;
             }
             ++tokCount;
         }
-        return new Item(name, weight, posneg, items);
+        return new Item(name, weight, posneg, processBooleanArray(itemIndices));
     }
+    
+    public static boolean[] processBooleanArray(ArrayList<Integer> list)
+    {
+        if (list.isEmpty()) return null;
+        
+        Integer[] nums = list.toArray(new Integer[0]);
+        Arrays.sort(nums);
+        int max = nums[nums.length-1];
+        int min = nums[0];
+        boolean[] bits = new boolean[max+1];
 
-    private static class ItemException extends Exception {
-
-        public ItemException(String message)
+        for (Integer integer : nums)
         {
-            super(message);
+            bits[integer] = true;
         }
+        return bits;
     }
 }

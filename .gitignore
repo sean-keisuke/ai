@@ -6,3 +6,5 @@
 *.war
 *.ear
 /clobberBot/target/
+/csp/nbproject/private/
+/csp/dtanner/target/

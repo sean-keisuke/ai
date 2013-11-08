@@ -1,33 +1,50 @@
 package com.reuben.dtanner;
 
-import java.util.List;
-
 /**
  * @author reuben
  */
-public class Item {
+public class Item{
 
-    private String name;
+    private int index;
     private int size;
-    private char posneg;
-    private List<String> items;
+    private Boolean with;
+    private boolean[] items;
 
-    public Item(String name, int size, char posneg, List<String> items)
+    public Item(String name, int size, char posneg, boolean[] items)
     {
-        this.name = name;
+        this.index = Integer.parseInt(name.substring(4));
         this.size = size;
-        this.posneg = posneg;
+        this.with = posneg == '\0' ? null : posneg == '+' ? true : false ;
         this.items = items;
     }
-
-    public String getName()
+    
+    public boolean canPackWith(int item)
     {
-        return name;
+        if (with == null) return true;
+        if (item >= items.length) return !with;
+        else return with == items[item];
     }
 
-    public void setName(String name)
+    @Override
+    public int hashCode()
     {
-        this.name = name;
+        return 31*this.index;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        return this.index == ((Item)obj).index;
+    }
+
+    public int getIndex()
+    {
+        return index;
+    }
+
+    public void setIndex(int index)
+    {
+        this.index = index;
     }
 
     public int getSize()
@@ -40,23 +57,53 @@ public class Item {
         this.size = size;
     }
 
-    public char getPosneg()
+    public Boolean isWith()
     {
-        return posneg;
+        return with;
     }
 
-    public void setPosneg(char posneg)
+    public void setWith(Boolean with)
     {
-        this.posneg = posneg;
+        this.with = with;
     }
 
-    public List<String> getItems()
+    public boolean[] getItems()
     {
         return items;
     }
 
-    public void setItems(List<String> items)
+    public void setItems(boolean[] items)
     {
         this.items = items;
+    }
+    
+    @Override
+    public String toString()
+    {
+        return "item" + this.index;
+    }
+    
+    public String debugToString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("item").append(this.index).append(" ").append(this.size).append(" ");
+        if (with != null)
+        {
+            sb.append(with ? "+" : "-").append(" ");
+            for (int i = 0; i < items.length; i++)
+            {
+                if (items[i])
+                {
+                    sb.append("item").append(i).append(" ");
+                }
+            }
+            sb.append("\n");
+            return sb.toString();
+        }
+        else
+        {
+            sb.append("\n");
+            return sb.toString();
+        }
     }
 }
