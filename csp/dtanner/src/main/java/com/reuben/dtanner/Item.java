@@ -8,21 +8,21 @@ public class Item{
     private int index;
     private int size;
     private Boolean with;
-    private boolean[] items;
+    private boolean[] constraints;
 
-    public Item(String name, int size, char posneg, boolean[] items)
+    public Item(String name, int size, char posneg, boolean[] constraints)
     {
         this.index = Integer.parseInt(name.substring(4));
         this.size = size;
         this.with = posneg == '\0' ? null : posneg == '+' ? true : false ;
-        this.items = items;
+        this.constraints = constraints;
     }
     
     public boolean canPackWith(int item)
     {
         if (with == null) return true;
-        if (item >= items.length) return !with;
-        else return with == items[item];
+        if (item >= constraints.length) return !with;
+        else return with == constraints[item];
     }
 
     @Override
@@ -67,14 +67,14 @@ public class Item{
         this.with = with;
     }
 
-    public boolean[] getItems()
+    public boolean[] getConstraints()
     {
-        return items;
+        return constraints;
     }
 
-    public void setItems(boolean[] items)
+    public void setConstraints(boolean[] constraints)
     {
-        this.items = items;
+        this.constraints = constraints;
     }
     
     @Override
@@ -90,9 +90,9 @@ public class Item{
         if (with != null)
         {
             sb.append(with ? "+" : "-").append(" ");
-            for (int i = 0; i < items.length; i++)
+            for (int i = 0; i < constraints.length; i++)
             {
-                if (items[i])
+                if (constraints[i])
                 {
                     sb.append("item").append(i).append(" ");
                 }

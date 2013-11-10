@@ -1,0 +1,29 @@
+public String backtrack(HashSet<Bag> bags, HashSet<Item> items)
+{
+	if all items have been packed return the bag's contents
+	{
+		choose the most restrictive item (heaviest first, if there is a tie use the degree heuristic)
+		for each of the bags (order by allowing choosing the bag that allows the most values to be chosen first. check out LCV in book)
+		{
+			if no constraints are violated by putting the item in that bag
+			{
+				put it in the bag
+				modify constraints on the bag
+				if there are bags that can have items added to them
+				{
+					result = backtrack(bags, items)
+					if result != null
+					{
+						return result
+					}
+				}
+			}
+		}
+	}
+	return failure
+}
+
+
+the domains of the bags are the items that can be added to them. if none of the bags can have any items added to them, it's a failure and we need to backtrack 
+
+bags constraints need to be changed (forward checking) when items are added to them

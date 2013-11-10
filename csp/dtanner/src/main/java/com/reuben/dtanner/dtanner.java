@@ -27,7 +27,7 @@ public class dtanner {
         
         for (int i = 0; i < numBags; i++)
         {
-            bags[i] = new Bag(maxBagSpace);
+            bags[i] = new Bag(maxBagSpace, items.size());
         }
         
         Solver solver = new Solver(bags, items);
