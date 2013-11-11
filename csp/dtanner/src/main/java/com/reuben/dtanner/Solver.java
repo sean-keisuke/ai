@@ -1,10 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package com.reuben.dtanner;
-
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -16,7 +9,6 @@ public class Solver {
 
     public String solve(Bag[] bags, HashSet<Item> items)
     {
-//        return debugItems(items);
         String result = "failure";
         
         if (items.isEmpty()) { return successString(bags); }
@@ -44,7 +36,7 @@ public class Solver {
     
     private String successString(Bag[] bags)
     {
-        String tostring = "";
+        String tostring = "success\n";
         for (Bag bag : bags)
         {
             tostring += bag.toString();
@@ -141,11 +133,6 @@ public class Solver {
         return highestDegree;
     }
 
-    private Bag modifyBagConstraints(Bag bag)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
     private boolean failure(Bag[] bags, HashSet<Item> items)
     {
         //failure would imply that there are items left but none can be added to any bags
@@ -153,6 +140,8 @@ public class Solver {
         if (items.isEmpty()) return false;
         for (Bag bag : bags)
         {
+        	if (bag.isFull()) continue;
+        	
             for (Item item : items)
             {
                 if (bag.canAdd(item))

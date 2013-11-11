@@ -12,7 +12,7 @@ LDFLAGS         := -lX11 -lXm -lXaw -lXmu -lXt -lICE -lSM -pthread -L/home/stude
 #Uncomment this next line if you'd like to debug against yourself
 #CFLAGS 		+= -DDEBUG
 
-all: checkers computer makeboard
+all: computer
 checkers: graphics.o checkers.o
 	${CC} ${CPPFLAGS} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 computer: myprog.o

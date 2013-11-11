@@ -1,4 +1,3 @@
-package com.reuben.dtanner;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,9 +44,12 @@ public class Bag implements Comparable {
     
     public void remove(Item item)
     {
-        items.remove(item);
-        removeConstraints(item);
-        currentSize -= item.getSize();
+    	if (items.contains(item))
+    	{
+    		items.remove(item);
+            removeConstraints(item);
+            currentSize -= item.getSize();
+    	}
     }
     
     public boolean isFull()
@@ -115,13 +117,15 @@ public class Bag implements Comparable {
     @Override
     public String toString()
     {
-        String toString ="";
-        for (Item item : items)
-        {
-            toString += item.toString() + " ";
-//            toString += item.debugToString();
-        }
-        toString += "\n";
+    	String toString ="";
+    	if (!items.isEmpty())
+    	{
+            for (Item item : items)
+            {
+                toString += item.toString() + " ";
+            }
+            toString += "\n";
+    	}
         return toString;
     }
 
