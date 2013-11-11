@@ -52,12 +52,12 @@ public class Bag implements Comparable {
     
     public boolean isFull()
     {
-        return capacity == currentSize;
+        return capacity <= currentSize;
     }
 
     public boolean canAdd(Item i)
     {
-        if (i.getSize() > capacity - currentSize || isFull()) return false;
+        if (i.getSize() > (capacity - currentSize) || isFull()) return false;
         for (Item item : items)
             if (!item.canPackWith(i.getIndex()) || !i.canPackWith(item.getIndex()))
                 return false;

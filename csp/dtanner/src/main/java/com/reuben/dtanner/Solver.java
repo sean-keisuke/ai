@@ -17,11 +17,9 @@ public class Solver {
     public String solve(Bag[] bags, HashSet<Item> items)
     {
 //        return debugItems(items);
-        
         String result = "failure";
         
         if (items.isEmpty()) { return successString(bags); }
-        //may need to also check if the bags are in a successful state as well
         
         Item restrictiveItem = MRV(items);
         
@@ -30,9 +28,6 @@ public class Solver {
             if (bag.add(restrictiveItem))
             {
                 items.remove(restrictiveItem);
-//                bag = modifyBagConstraints(bag); //this is the inference step
-                
-                //need to make sure that the bag being modified is still backed by Bag[] bags
                 if (!failure(bags, items))
                 {
                     result = solve(bags, items);
