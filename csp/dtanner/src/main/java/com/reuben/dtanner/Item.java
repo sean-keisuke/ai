@@ -24,6 +24,8 @@ public class Item{
         if (item >= constraints.length) return !with;
         else return with == constraints[item];
     }
+    
+    
 
     @Override
     public int hashCode()

@@ -7,7 +7,7 @@ import java.util.HashSet;
  * truth values in constraints represent that a bag cannot have that item in it
  * @author reuben
  */
-public class Bag {
+public class Bag implements Comparable {
     
     private int capacity;
     private int currentSize;
@@ -20,7 +20,6 @@ public class Bag {
         currentSize = 0;
         items = new HashSet<>();
         domain = new boolean[domainSize];
-        Arrays.fill(domain, true);
     }
     
     /**
@@ -33,9 +32,22 @@ public class Bag {
         {
             items.add(item);
             currentSize += item.getSize();
+            addConstraints(item);
             return true;
         }
         return false;
+    }
+
+    public HashSet<Item> getItems()
+    {
+        return items;
+    }
+    
+    public void remove(Item item)
+    {
+        items.remove(item);
+        removeConstraints(item);
+        currentSize -= item.getSize();
     }
     
     public boolean isFull()
@@ -43,7 +55,7 @@ public class Bag {
         return capacity == currentSize;
     }
 
-    private boolean canAdd(Item i)
+    public boolean canAdd(Item i)
     {
         if (i.getSize() > capacity - currentSize || isFull()) return false;
         for (Item item : items)
@@ -52,16 +64,52 @@ public class Bag {
         return true;
     }
     
-    private void addConstraints(Item i)
+    public void addConstraints(Item i)
     {
         boolean[] itemConst = i.getConstraints();
-        for (int j = 0; j < domain.length; j++)
+        
+        if (itemConst == null) return;
+        
+        for (int j = 0; j < itemConst.length; j++)
         {
             if (itemConst[j])
             {
-                
+                domain[j] = true;
             }
         }
+    }
+    
+    public void removeConstraints(Item i)
+    {
+        boolean[] itemConst = i.getConstraints();
+        
+        if (itemConst == null) return;
+        
+        for (int j = 0; j < itemConst.length; j++)
+        {
+            if (itemConst[j])
+            {
+                domain[j] = false;
+            }
+        }
+    }
+    
+    public int constraintsLeft()
+    {
+        int count = 0;
+        for (boolean bool : domain)
+        {
+            if (!bool)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+    
+    public int remainingCapacity()
+    {
+        return capacity - currentSize;
     }
     
     @Override
@@ -71,8 +119,25 @@ public class Bag {
         for (Item item : items)
         {
             toString += item.toString() + " ";
+//            toString += item.debugToString();
         }
         toString += "\n";
         return toString;
     }
+
+    public boolean[] getDomain()
+    {
+        return domain;
+    }
+
+    @Override
+    public int compareTo(Object o)
+    {
+        Bag that = (Bag)o;
+        int thatsConstraints = that.constraintsLeft() + that.remainingCapacity()*2;
+        int thissConstraints = this.constraintsLeft() + this.remainingCapacity()*2;
+        return Integer.compare(thatsConstraints, thissConstraints);
+    }
+    
+    
 }

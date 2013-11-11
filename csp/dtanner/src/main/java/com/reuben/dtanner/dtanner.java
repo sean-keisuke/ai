@@ -30,9 +30,9 @@ public class dtanner {
             bags[i] = new Bag(maxBagSpace, items.size());
         }
         
-        Solver solver = new Solver(bags, items);
+        Solver solver = new Solver();
         
-        System.out.println(solver.solve());
+        System.out.println(solver.solve(bags, items));
     }
 
     /**
@@ -132,22 +132,32 @@ public class dtanner {
             }
             ++tokCount;
         }
-        return new Item(name, weight, posneg, processBooleanArray(itemIndices));
+        return new Item(name, weight, posneg, processBooleanArray(itemIndices, posneg));
     }
     
-    public static boolean[] processBooleanArray(ArrayList<Integer> list)
+    public static boolean[] processBooleanArray(ArrayList<Integer> list, char posneg)
     {
-        if (list.isEmpty()) return null;
+        if (posneg == '\0' || list.isEmpty()) return null;
         
         Integer[] nums = list.toArray(new Integer[0]);
         Arrays.sort(nums);
         int max = nums[nums.length-1];
-        int min = nums[0];
+
         boolean[] bits = new boolean[max+1];
+        boolean constrainedAGAINST;
+        if (posneg == '+')
+        {
+            Arrays.fill(bits, true);
+            constrainedAGAINST = false;
+        }
+        else
+        {
+            constrainedAGAINST = true;
+        }
 
         for (Integer integer : nums)
         {
-            bits[integer] = true;
+            bits[integer] = constrainedAGAINST;
         }
         return bits;
     }

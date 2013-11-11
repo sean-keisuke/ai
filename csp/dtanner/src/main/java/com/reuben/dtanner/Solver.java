@@ -5,31 +5,19 @@
  */
 package com.reuben.dtanner;
 
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 
 /**
  *
  * @author reuben
  */
 public class Solver {
-    
-    private Bag[] initialBags;
-    private HashSet<Item> initialItems;
-    
-    public Solver(Bag[] bags, HashSet<Item> items)
-    {
-        this.initialBags = bags;
-        this.initialItems = items;
-    }
-    
-    public String solve()
-    {
-        return solve(initialBags, initialItems);
-    }
 
     public String solve(Bag[] bags, HashSet<Item> items)
     {
+//        return debugItems(items);
+        
         String result = "failure";
         
         if (items.isEmpty()) { return successString(bags); }
@@ -42,7 +30,7 @@ public class Solver {
             if (bag.add(restrictiveItem))
             {
                 items.remove(restrictiveItem);
-                bag = modifyBagConstraints(bag); //this is the inference step
+//                bag = modifyBagConstraints(bag); //this is the inference step
                 
                 //need to make sure that the bag being modified is still backed by Bag[] bags
                 if (!failure(bags, items))
@@ -50,7 +38,7 @@ public class Solver {
                     result = solve(bags, items);
                     if (!result.equals("failure"))
                     {
-                        return successString(bags);
+                        return result;
                     }
                 }
                 break;
@@ -68,6 +56,16 @@ public class Solver {
         }
         return tostring;
         
+    }
+    
+    private String debugItems(HashSet<Item> items)
+    {
+        String tostring = "";
+        for (Item item : items)
+        {
+            tostring += item.debugToString();
+        }
+        return tostring;
     }
 
     public Item MRV(HashSet<Item> items)
@@ -90,17 +88,27 @@ public class Solver {
         }
         if (!tied.isEmpty())
         {
+            tied.add(heaviest);
             return degree(tied);
         }
         return heaviest;
     }
     
-    private Bag[] LCV(Bag[] bags, Item item)
+    public Bag[] LCV(Bag[] bags, Item item)
     {
         //orders the bags in such a way that the item being added is the least constraining
         //this would involve probably leaving the most space in the bag
         //and by maximizing the amount of falses in the constraint array
-        return null;
+        for (Bag bag : bags)
+        {
+            bag.add(item);
+        }
+        Arrays.sort(bags);
+        for (Bag bag : bags)
+        {
+            bag.remove(item);
+        }
+        return bags;
     }
     
     public Item degree(HashSet<Item> items)
@@ -109,10 +117,12 @@ public class Solver {
         int oldHighestConstraintCount = 0;
         for (Item current : items)
         {
+            if (current.isWith() == null) continue;
+            
             int curConstraintCount = 0; 
             for (Item others : items)
             {
-                if (others.getConstraints() != null && others.getConstraints()[current.getIndex()])
+                if (others.getConstraints() != null && current.getIndex() < others.getConstraints().length && others.getConstraints()[current.getIndex()])
                 {
                     curConstraintCount++;
                 }
@@ -121,6 +131,15 @@ public class Solver {
             {
                 highestDegree = current;
                 oldHighestConstraintCount = curConstraintCount;
+            }
+        }
+        
+        if (highestDegree.equals(new Item("item0", 0, '\0', null)))
+        {
+            for (Item item : items)
+            {
+                highestDegree = item;
+                break;
             }
         }
         
@@ -136,11 +155,13 @@ public class Solver {
     {
         //failure would imply that there are items left but none can be added to any bags
         //which could be interpreted as bags with domains that mismatch the remaining items
+        if (items.isEmpty()) return false;
         for (Bag bag : bags)
         {
             for (Item item : items)
             {
-                
+                if (bag.canAdd(item))
+                    return false;
             }
         }
         return true;
