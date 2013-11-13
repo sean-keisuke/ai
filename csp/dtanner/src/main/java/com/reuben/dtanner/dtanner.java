@@ -1,3 +1,4 @@
+//package com.reuben.dtanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -5,9 +6,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.StringTokenizer;
 
 /**
@@ -17,27 +18,26 @@ public class dtanner {
     private static int numBags;
     private static int maxBagSpace;
     private static HashSet<Item> items;
+    private static LinkedList<String> initialItems = new LinkedList<>();
     
     public static void main(String[] args)
     {
         parseFile(Paths.get(args[0]));
+        backPropagateIndices(items, initialItems);
         
         Bag[] bags = new Bag[numBags];
         
         for (int i = 0; i < numBags; i++)
         {
-            bags[i] = new Bag(maxBagSpace, items.size());
+            bags[i] = new Bag(maxBagSpace, items.size()+1);
         }
         
         Solver solver = new Solver();
         
-        System.out.println(solver.solve(bags, items));
+        System.out.print(solver.solve(bags, items));
+        
     }
-
-    /**
-     * TODO:consider refactoring all high level objects to be arrays
-     * @param paths 
-     */
+    
     private static void parseFile(Path paths)
     {
         items = new HashSet<>();
@@ -90,7 +90,7 @@ public class dtanner {
         String name = "";
         int weight = 0;
         char posneg = '\0';
-        ArrayList<Integer> itemIndices = new ArrayList<>();
+        LinkedList<String> itemNames = new LinkedList<>();
 
         StringTokenizer tok = new StringTokenizer(line, " ");
         String token = "";
@@ -102,6 +102,7 @@ public class dtanner {
             {
                 case 0:
                     name = tok.nextToken();
+                    initialItems.add(name);
                     break;
                 case 1:
                     try
@@ -118,25 +119,17 @@ public class dtanner {
                         posneg = tok.nextToken().charAt(0);
                     break;
                 default:
-                    try
-                    {
-                        itemIndices.add(Integer.parseInt(tok.nextToken().substring(4)));
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        System.err.println("Names of items aren't of form \"itemxx\" where xx are integers");
-                        System.exit(1);
-                    }
+                        itemNames.add(tok.nextToken());
                     break;
             }
             ++tokCount;
         }
-        return new Item(name, weight, posneg, processBooleanArray(itemIndices, posneg));
+        return new Item(name, weight, posneg, itemNames);
     }
     
-    public static boolean[] processBooleanArray(ArrayList<Integer> list, char posneg)
+    public static boolean[] processBooleanArray(LinkedList<Integer> list, Boolean with)
     {
-        if (posneg == '\0' || list.isEmpty()) return null;
+        if (with == null) return null;
         
         Integer[] nums = list.toArray(new Integer[0]);
         Arrays.sort(nums);
@@ -144,7 +137,7 @@ public class dtanner {
 
         boolean[] bits = new boolean[max+1];
         boolean constrainedAGAINST;
-        if (posneg == '+')
+        if (with)
         {
             Arrays.fill(bits, true);
             constrainedAGAINST = false;
@@ -159,5 +152,21 @@ public class dtanner {
             bits[integer] = constrainedAGAINST;
         }
         return bits;
+    }
+
+    private static void backPropagateIndices(HashSet<Item> items, LinkedList<String> initialItems)
+    {
+        for (Item item : items)
+        {
+            item.setIndex(initialItems.indexOf(item.getName()));
+            LinkedList<Integer> indices = new LinkedList<>();
+            LinkedList<String> constraintNames = item.getItemNames();
+            if (constraintNames == null || constraintNames.isEmpty()) continue;
+            for (String string : constraintNames)
+            {
+                indices.add(initialItems.indexOf(string));
+            }
+            item.setConstraints(processBooleanArray(indices, item.isWith()));
+        }
     }
 }

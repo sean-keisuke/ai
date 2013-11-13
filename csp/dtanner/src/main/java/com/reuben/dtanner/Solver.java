@@ -1,3 +1,5 @@
+//package com.reuben.dtanner;
+
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -27,12 +29,22 @@ public class Solver {
                     {
                         return result;
                     }
+                    bag.remove(restrictiveItem);
+                    items.add(restrictiveItem);
                 }
-                break;
             }
         }
         return result;
     }
+    
+            public Double x(double x){
+                System.out.println("== Multiplying ==");
+                if(x(1).equals("x"))
+                {
+                    x = x(0) * x(2);
+                }
+                return new Double(0);
+        }
     
     private String successString(Bag[] bags)
     {
@@ -109,10 +121,17 @@ public class Solver {
             int curConstraintCount = 0; 
             for (Item others : items)
             {
-                if (others.getConstraints() != null && current.getIndex() < others.getConstraints().length && others.getConstraints()[current.getIndex()])
+                if (others.getConstraints() == null || others.isWith() == null) continue;
+                if (current.getIndex() >= others.getConstraints().length)
+                {
+                    curConstraintCount += others.isWith() ? 1 : 0 ;
+                    continue;
+                }
+                if (others.getConstraints()[current.getIndex()])
                 {
                     curConstraintCount++;
                 }
+                
             }
             if (curConstraintCount > oldHighestConstraintCount)
             {
@@ -123,6 +142,7 @@ public class Solver {
         
         if (highestDegree.equals(new Item("item0", 0, '\0', null)))
         {
+            //hash sets dont have a get so this is the workaround
             for (Item item : items)
             {
                 highestDegree = item;
@@ -140,7 +160,7 @@ public class Solver {
         if (items.isEmpty()) return false;
         for (Bag bag : bags)
         {
-        	if (bag.isFull()) continue;
+            if (bag.isFull()) continue;
         	
             for (Item item : items)
             {

@@ -1,41 +1,50 @@
+//package com.reuben.dtanner;
+
+import java.util.LinkedList;
 
 /**
  * @author reuben
  */
 public class Item{
 
+    private String name;
     private int index;
     private int size;
     private Boolean with;
     private boolean[] constraints;
+    private LinkedList<String> itemNames;
 
-    public Item(String name, int size, char posneg, boolean[] constraints)
+    public Item(String name, int size, char posneg, LinkedList<String> itemNames)
     {
-        this.index = Integer.parseInt(name.substring(4));
+        this.name = name;
         this.size = size;
-        this.with = posneg == '\0' ? null : posneg == '+' ? true : false ;
-        this.constraints = constraints;
+        this.with = posneg == '\0' ? null : posneg == '+' ? true : false;
+        this.itemNames = itemNames;
+        this.constraints = itemNames == null ? null : new boolean[itemNames.size()];
     }
     
     public boolean canPackWith(int item)
     {
         if (with == null) return true;
         if (item >= constraints.length) return !with;
-        else return with == constraints[item];
+        else return !constraints[item];
     }
-    
-    
 
     @Override
     public int hashCode()
     {
-        return 31*this.index;
+        return this.name.hashCode();
     }
 
     @Override
     public boolean equals(Object obj)
     {
-        return this.index == ((Item)obj).index;
+        return this.name.equals(((Item)obj).name);
+    }
+    
+    public String getName()
+    {
+        return name;
     }
 
     public int getIndex()
@@ -78,10 +87,15 @@ public class Item{
         this.constraints = constraints;
     }
     
+    public LinkedList<String> getItemNames()
+    {
+        return itemNames;
+    }
+    
     @Override
     public String toString()
     {
-        return "item" + this.index;
+        return this.name;
     }
     
     public String debugToString()

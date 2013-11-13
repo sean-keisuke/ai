@@ -21,6 +21,11 @@
                 <configuration>
                     <source>1.7</source>
                     <target>1.7</target>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.reuben.dtanner</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>

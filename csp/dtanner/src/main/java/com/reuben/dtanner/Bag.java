@@ -1,5 +1,5 @@
+//package com.reuben.dtanner;
 
-import java.util.Arrays;
 import java.util.HashSet;
 
 /**
@@ -46,7 +46,7 @@ public class Bag implements Comparable {
     {
     	if (items.contains(item))
     	{
-    		items.remove(item);
+            items.remove(item);
             removeConstraints(item);
             currentSize -= item.getSize();
     	}
