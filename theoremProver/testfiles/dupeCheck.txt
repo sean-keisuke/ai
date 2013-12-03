@@ -1,0 +1,10 @@
+!P(i,j) !P(i,j) !P(i,j) !P(i,j)
+!P(i,j) A(i) A(j)
+!A(A)
+A(i)
+A(j)
+!A(D)
+Q(i,j) A(i) A(j)
+R(i,j) A(i) A(j)
+
+S(B,B,B,B) S(A,B,C,D)

@@ -1,6 +1,6 @@
 public String backtrack(HashSet<Bag> bags, HashSet<Item> items)
 {
-	if all items have been packed return the bag's contents
+	if all items have been packed return success and the bag's contents
 	{
 		choose the most restrictive item (heaviest first, if there is a tie use the degree heuristic)
 		for each of the bags (order by allowing choosing the bag that allows the most values to be chosen first. check out LCV in book)
@@ -9,18 +9,20 @@ public String backtrack(HashSet<Bag> bags, HashSet<Item> items)
 			{
 				put it in the bag
 				modify constraints on the bag
-				if there are bags that can have items added to them
+				if there are bags that can have items added to them i.e. not a failure
 				{
 					result = backtrack(bags, items)
-					if result != null
+					if result != failure
 					{
 						return result
 					}
+					add the item back to the set of items
+					remove the item from the bag
 				}
 			}
 		}
 	}
-	return failure
+	return result
 }
 
 
